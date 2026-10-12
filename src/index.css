@@ -2845,3 +2845,9 @@ textarea.field-input {
   -webkit-backdrop-filter: saturate(180%) blur(18px);
   box-shadow: 0 8px 22px rgba(63, 23, 21, 0.14);
 }
+
+/* PIN hint only appears for the lockout countdown. */
+.pin-hint {
+  min-height: 0;
+  margin-top: 6px;
+}

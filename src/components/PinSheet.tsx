@@ -112,9 +112,9 @@ export function PinSheet({ onClose }: PinSheetProps) {
           Cancel
         </button>
         <h2 className="pin-title">Enter admin PIN</h2>
-        <p className="pin-hint">
-          {locked ? `Too many attempts. Try again in ${formatWait(lockedUntil - now)}.` : "Unlocks editing and earnings on this device."}
-        </p>
+        {locked && (
+          <p className="pin-hint">Too many attempts. Try again in {formatWait(lockedUntil - now)}.</p>
+        )}
         <div className={`pin-dots ${shake ? "shake" : ""}`} onAnimationEnd={() => setShake(false)} aria-hidden="true">
           {Array.from({ length: PIN_LENGTH }, (_, i) => (
             <span key={i} className={`pin-dot ${i < pin.length ? "filled" : ""}`} />
