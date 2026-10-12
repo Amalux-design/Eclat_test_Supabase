@@ -233,5 +233,26 @@ async function buildInvoice(log: WorkLog): Promise<void> {
   doc.text("Thank you for choosing Éclat by Harsha.", W / 2, 280, { align: "center" });
 
   const safeName = (log.clientName || "client").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
-  doc.save(`Invoice-${invoiceNumber(log)}-${safeName}.pdf`);
+  const fileName = `Invoice-${invoiceNumber(log)}-${safeName}.pdf`;
+  await deliver(doc.output("blob"), fileName, () => doc.save(fileName));
+}
+
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+/**
+ * iPhone: hand the PDF to the Share sheet (Save to Files, WhatsApp, Mail).
+ * A plain download inside the installed app opens the PDF full-screen with no
+ * way back to the app. Everywhere else, download as usual.
+ */
+async function deliver(blob: Blob, fileName: string, download: () => void): Promise<void> {
+  const file = new File([blob], fileName, { type: "application/pdf" });
+  if (IS_IOS && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: fileName });
+      return;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
+    }
+  }
+  download();
 }

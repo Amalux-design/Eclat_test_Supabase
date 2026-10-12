@@ -2851,3 +2851,66 @@ textarea.field-input {
   min-height: 0;
   margin-top: 6px;
 }
+
+/* ---------- iPhone install tip ---------- */
+
+.install-hint {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--safe-bottom) + 80px);
+  z-index: 30;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 10px 16px;
+  border-radius: 18px;
+  background: rgba(255, 252, 248, 0.7);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 8px 24px rgba(63, 23, 21, 0.14), 0 0 0 0.5px rgba(63, 23, 21, 0.1);
+  font-size: 15px;
+  color: var(--ink);
+  animation: settle-in 0.4s var(--ease-soft);
+}
+
+.install-hint p {
+  flex: 1;
+}
+
+.install-hint strong {
+  font-weight: 600;
+}
+
+.install-hint-icon {
+  vertical-align: -2px;
+  color: var(--oxblood);
+}
+
+.install-hint-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+}
+
+/* iPhone: stop the tap-to-zoom on any small text input. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Installed app: no rubber-band reveal of white behind the page. */
+html {
+  background: var(--cream);
+}

@@ -10,6 +10,7 @@ import { PaymentsPage } from "./pages/PaymentsPage";
 import { USING_MOCK } from "./api/client";
 import { ConfirmProvider } from "./components/ConfirmDialog";
 import { BusyOverlay } from "./components/Loader";
+import { InstallHint } from "./components/InstallHint";
 import { useEffect } from "react";
 import { useLogs } from "./context/LogsContext";
 import { hideSplash } from "./utils/splash";
@@ -65,6 +66,7 @@ function App() {
                 <AppRoutes />
               </main>
               <BottomNav />
+              <InstallHint />
             </div>
           </HashRouter>
         </LogsProvider>
