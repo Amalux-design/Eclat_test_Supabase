@@ -1,79 +1,208 @@
 import { useMemo, useState } from "react";
 import { useLogs } from "../context/LogsContext";
+import { useAuth } from "../context/AuthContext";
 import { LogCard } from "../components/LogCard";
 import { LogForm } from "../components/LogForm";
 import { FAB } from "../components/FAB";
-import { formatDateHeading } from "../utils/format";
+import { Loader } from "../components/Loader";
+import { useConfirm } from "../components/ConfirmDialog";
+import { addDays, formatDateHeading, todayISO, weekRange } from "../utils/format";
 import type { WorkLog, WorkLogInput } from "../types";
 
+type ChipId = "all" | "today" | "tomorrow" | "week" | "upcoming" | "past" | "pending";
+
+interface Chip {
+  id: ChipId;
+  label: string;
+  adminOnly?: boolean;
+}
+
+const CHIPS: Chip[] = [
+  { id: "all", label: "All" },
+  { id: "today", label: "Today" },
+  { id: "tomorrow", label: "Tomorrow" },
+  { id: "week", label: "This week" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "past", label: "Past" },
+  { id: "pending", label: "Payment due", adminOnly: true },
+];
+
+const PINNED_TITLE: Record<Exclude<ChipId, "all">, string> = {
+  today: "Today",
+  tomorrow: "Tomorrow",
+  week: "This week",
+  upcoming: "Upcoming",
+  past: "Past",
+  pending: "Payment due",
+};
+
+const EMPTY_PINNED: Record<Exclude<ChipId, "all">, string> = {
+  today: "Nothing booked today.",
+  tomorrow: "Nothing booked tomorrow.",
+  week: "Nothing else booked this week.",
+  upcoming: "No upcoming bookings yet.",
+  past: "No past bookings yet.",
+  pending: "Every booking is paid.",
+};
+
+function byTime(a: WorkLog, b: WorkLog): number {
+  // Bookings without a start time go last within their day.
+  if (a.startTime === b.startTime) return 0;
+  if (!a.startTime) return 1;
+  if (!b.startTime) return -1;
+  return a.startTime < b.startTime ? -1 : 1;
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+}
+
 export function LogsPage() {
-  const { logs, loading, error, addLog, editLog, removeLog, logsByDate } = useLogs();
+  const { logs, loading, error, addLog, editLog, removeLog } = useLogs();
+  const { isAdmin } = useAuth();
+  const confirm = useConfirm();
+  const [chip, setChip] = useState<ChipId>("today");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<WorkLog | null>(null);
 
-  // logs (and therefore logsByDate's insertion order) already come back
-  // date-desc from the API, so a direct map iteration preserves that order
-  // without an O(n²) find-based grouping pass.
-  const grouped = useMemo(
-    () => Array.from(logsByDate.entries()).map(([date, items]) => ({ date, items })),
-    [logsByDate]
-  );
+  const activeChip = !isAdmin && chip === "pending" ? "today" : chip;
 
-  async function handleDelete(id: string) {
-    if (confirm("Delete this log entry?")) {
-      await removeLog(id).catch((e) => alert(e.message));
+  // Grouping runs on the device over already-loaded data: instant, no API call.
+  const { pinned, rest } = useMemo(() => {
+    const today = todayISO();
+    const tomorrow = addDays(today, 1);
+    const week = weekRange(today);
+
+    const match: Record<Exclude<ChipId, "all">, (l: WorkLog) => boolean> = {
+      today: (l) => l.date === today,
+      tomorrow: (l) => l.date === tomorrow,
+      week: (l) => l.date >= today && l.date <= week.end,
+      upcoming: (l) => l.date > today,
+      past: (l) => l.date < today,
+      pending: (l) => l.paymentStatus === "PENDING",
+    };
+
+    if (activeChip === "all") return { pinned: null, rest: logs };
+
+    const inGroup = logs.filter(match[activeChip]);
+    const future = activeChip !== "past" && activeChip !== "pending";
+    inGroup.sort((a, b) => {
+      if (a.date !== b.date) return (a.date < b.date ? -1 : 1) * (future ? 1 : -1);
+      return byTime(a, b);
+    });
+    const ids = new Set(inGroup.map((l) => l.id));
+    return { pinned: inGroup, rest: logs.filter((l) => !ids.has(l.id)) };
+  }, [logs, activeChip]);
+
+  const restByDate = useMemo(() => {
+    const groups: { date: string; items: WorkLog[] }[] = [];
+    for (const log of rest) {
+      const last = groups[groups.length - 1];
+      if (last && last.date === log.date) last.items.push(log);
+      else groups.push({ date: log.date, items: [log] });
     }
+    groups.forEach((g) => g.items.sort(byTime));
+    return groups;
+  }, [rest]);
+
+  const multiDay = activeChip !== "today" && activeChip !== "tomorrow";
+  const open = isAdmin ? (log: WorkLog) => setEditing(log) : undefined;
+
+  async function handleDelete(log: WorkLog) {
+    const ok = await confirm({
+      title: "Delete booking?",
+      message: `${log.clientName || "This booking"} will be removed for everyone, including assistants.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (ok) removeLog(log.id);
   }
 
   return (
     <div className="page">
-      <h1 className="page-title">Work Logs</h1>
+      <div className="page-head">
+        <h1 className="page-title">Bookings</h1>
+      </div>
 
-      {error && <div className="inline-error">{error}</div>}
+      <div className="chip-bar"><div className="chip-row" role="tablist" aria-label="Show bookings">
+        {CHIPS.filter((c) => isAdmin || !c.adminOnly).map((c) => (
+          <button
+            key={c.id}
+            role="tab"
+            aria-selected={activeChip === c.id}
+            className={`chip ${activeChip === c.id ? "active" : ""}`}
+            onClick={() => setChip(c.id === activeChip && c.id !== "all" ? "all" : c.id)}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div></div>
 
-      {loading && <div className="spinner" />}
+      {error && <div className="inline-note">{error}</div>}
+      {loading && <Loader label="Loading bookings" />}
+
+      {!loading && pinned && activeChip !== "all" && (
+        <section key={activeChip} className="pinned" aria-label={PINNED_TITLE[activeChip]}>
+          <header className="pinned-head">
+            <h2 className="pinned-title">{PINNED_TITLE[activeChip]}</h2>
+            <span className="pinned-count">
+              {pinned.length} {pinned.length === 1 ? "booking" : "bookings"}
+            </span>
+          </header>
+          {pinned.length === 0 && <p className="pinned-empty">{EMPTY_PINNED[activeChip]}</p>}
+          {pinned.map((log) => (
+            <LogCard
+              key={log.id}
+              log={log}
+              tone="wine"
+              dateLabel={multiDay ? shortDate(log.date) : undefined}
+              onClick={open && (() => open(log))}
+              onDelete={isAdmin ? () => handleDelete(log) : undefined}
+            />
+          ))}
+        </section>
+      )}
 
       {!loading && logs.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-title">Your diary is empty</div>
-          <div>Tap the + button to log your first booking.</div>
+          <p className="empty-state-title">No bookings yet</p>
+          <p>{isAdmin ? "Add the first booking with the button below." : "Bookings appear here as soon as they're added."}</p>
         </div>
       )}
 
       {!loading &&
-        grouped.map((group) => (
-          <div key={group.date}>
-            <div className="section-heading">{formatDateHeading(group.date)}</div>
-            {group.items.map((log) => (
-              <LogCard
-                key={log.id}
-                log={log}
-                onClick={() => setEditing(log)}
-                onDelete={() => handleDelete(log.id)}
-              />
-            ))}
-          </div>
+        restByDate.map((group) => (
+          <section key={group.date} className="day-group">
+            <h2 className="day-heading">{formatDateHeading(group.date)}</h2>
+            <div className="group list">
+              {group.items.map((log) => (
+                <LogCard
+                  key={log.id}
+                  log={log}
+                  onClick={open && (() => open(log))}
+                  onDelete={isAdmin ? () => handleDelete(log) : undefined}
+                />
+              ))}
+            </div>
+          </section>
         ))}
 
-      <FAB onClick={() => setShowAdd(true)} />
+      {isAdmin && <FAB onClick={() => setShowAdd(true)} />}
 
       {showAdd && (
         <LogForm
-          title="Add Log"
-          onSubmit={async (input: WorkLogInput) => {
-            await addLog(input);
-          }}
+          title="New booking"
+          defaultDate={activeChip === "tomorrow" ? addDays(todayISO(), 1) : undefined}
+          onSubmit={(input: WorkLogInput) => addLog(input)}
           onClose={() => setShowAdd(false)}
         />
       )}
 
       {editing && (
         <LogForm
-          title="Edit Log"
+          title="Edit booking"
           initial={editing}
-          onSubmit={async (input: WorkLogInput) => {
-            await editLog(editing.id, input);
-          }}
+          onSubmit={(input: WorkLogInput) => editLog(editing.id, input)}
           onClose={() => setEditing(null)}
         />
       )}

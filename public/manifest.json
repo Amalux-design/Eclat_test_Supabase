@@ -1,11 +1,11 @@
 {
-  "name": "Aparna's Work Log",
-  "short_name": "Work Log",
-  "description": "Freelance makeup artist work tracker",
+  "name": "Éclat by Harsha",
+  "short_name": "Éclat",
+  "description": "Bookings and schedule for Éclat by Harsha",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAF8F6",
-  "theme_color": "#9B8AA6",
+  "background_color": "#F8F2EA",
+  "theme_color": "#F8F2EA",
   "icons": [
     {
       "src": "/favicon.svg",

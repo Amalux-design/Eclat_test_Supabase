@@ -1,13 +1,20 @@
 import { useMemo, useState } from "react";
+import { ChevronDown, X } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
-import { PaymentSummaryCard } from "../components/PaymentSummaryCard";
 import { LogCard } from "../components/LogCard";
 import { LogForm } from "../components/LogForm";
-import { formatCurrency, monthLabel } from "../utils/format";
+import { formatCurrency, monthLabel, receivedOf } from "../utils/format";
+import { useConfirm } from "../components/ConfirmDialog";
+import { saveInvoice } from "../utils/invoice";
+import { Loader } from "../components/Loader";
+import { FileDown } from "lucide-react";
 import type { WorkLog, WorkLogInput } from "../types";
 
 export function PaymentsPage() {
-  const { logs, loading, error, markPaid, editLog } = useLogs();
+  const { logs, loading, error, markPaid, recordPayment, editLog } = useLogs();
+  const confirm = useConfirm();
+  const [partialOpen, setPartialOpen] = useState(false);
+  const [partialValue, setPartialValue] = useState("");
   const [groupByClient, setGroupByClient] = useState(false);
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<WorkLog | null>(null);
@@ -17,9 +24,10 @@ export function PaymentsPage() {
     let total = 0, paid = 0, pending = 0, pendingCount = 0;
     for (const log of logs) {
       total += log.amount;
-      if (log.paymentStatus === "PAID") paid += log.amount;
-      else {
-        pending += log.amount;
+      const received = receivedOf(log);
+      paid += received;
+      if (received < log.amount) {
+        pending += log.amount - received;
         pendingCount++;
       }
     }
@@ -38,13 +46,17 @@ export function PaymentsPage() {
     }
     return Array.from(map.entries())
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .map(([key, g]) => ({ key, ...g }));
+      .map(([key, g]) => {
+        const paid = g.logs.reduce((s, l) => s + receivedOf(l), 0);
+        const total = g.logs.reduce((s, l) => s + l.amount, 0);
+        return { key, ...g, paid, due: total - paid, total };
+      });
   }, [logs]);
 
   const clientGroups = useMemo(() => {
     const map = new Map<string, WorkLog[]>();
     for (const log of logs) {
-      const key = log.clientName || "No client name";
+      const key = log.clientName || "Unnamed client";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(log);
     }
@@ -60,142 +72,211 @@ export function PaymentsPage() {
     });
   }
 
-  async function handleMarkPaid(id: string) {
-    try {
-      await markPaid(id);
-      setSelected(null);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to update payment status.");
-    }
-  }
+  const paidShare = totals.total ? Math.round((totals.paid / totals.total) * 100) : 0;
 
   return (
     <div className="page">
-      <h1 className="page-title">Payments</h1>
+      <div className="page-head">
+        <h1 className="page-title">Earnings</h1>
+      </div>
 
-      {error && <div className="inline-error">{error}</div>}
-      {loading && <div className="spinner" />}
+      {error && <div className="inline-note">{error}</div>}
+      {loading && <Loader label="Loading earnings" />}
 
       {!loading && (
         <>
-          <div className="summary-grid">
-            <PaymentSummaryCard label="Total earnings" value={formatCurrency(totals.total)} />
-            <PaymentSummaryCard label="Total paid" value={formatCurrency(totals.paid)} tint="success" />
-            <PaymentSummaryCard label="Total pending" value={formatCurrency(totals.pending)} tint="warning" />
-            <PaymentSummaryCard label="Pending count" value={String(totals.pendingCount)} tint="warning" />
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24 }}>
-            <div className="section-heading" style={{ margin: 0 }}>
-              {groupByClient ? "By client" : "Monthly breakdown"}
+          <section className="ledger pinned" aria-label="Totals">
+            <div className="ledger-total">
+              <span className="ledger-label">Total booked</span>
+              <span className="ledger-figure">{formatCurrency(totals.total)}</span>
             </div>
-            <button
-              className="link-btn"
-              onClick={() => setGroupByClient((v) => !v)}
-            >
-              {groupByClient ? "Group by month" : "Group by client"}
+            <div className="ledger-bar" aria-hidden="true">
+              <span style={{ width: `${paidShare}%` }} />
+            </div>
+            <div className="ledger-split">
+              <div>
+                <span className="ledger-label">Received</span>
+                <span className="ledger-value">{formatCurrency(totals.paid)}</span>
+              </div>
+              <div>
+                <span className="ledger-label">
+                  Due from {totals.pendingCount} {totals.pendingCount === 1 ? "booking" : "bookings"}
+                </span>
+                <span className="ledger-value due">{formatCurrency(totals.pending)}</span>
+              </div>
+            </div>
+          </section>
+
+          <div className="segmented view-switch">
+            <button className={`segmented-btn ${!groupByClient ? "active" : ""}`} onClick={() => setGroupByClient(false)}>
+              By month
+            </button>
+            <button className={`segmented-btn ${groupByClient ? "active" : ""}`} onClick={() => setGroupByClient(true)}>
+              By client
             </button>
           </div>
 
-          {!groupByClient &&
-            monthGroups.map((g) => {
-              const paid = g.logs.filter((l) => l.paymentStatus === "PAID").reduce((s, l) => s + l.amount, 0);
-              const pending = g.logs.filter((l) => l.paymentStatus === "PENDING").reduce((s, l) => s + l.amount, 0);
+          {!groupByClient && monthGroups.length > 0 && (
+            <div className="group">
+            {monthGroups.map((g) => {
               const isOpen = openMonths.has(g.key);
               return (
-                <div key={g.key} className="card" style={{ marginBottom: 10 }}>
-                  <button
-                    onClick={() => toggleMonth(g.key)}
-                    style={{
-                      width: "100%",
-                      background: "none",
-                      border: "none",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: 0,
-                      minHeight: 44,
-                    }}
-                  >
-                    <span style={{ fontWeight: 600 }}>{monthLabel(g.year, g.month)}</span>
-                    <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                      {formatCurrency(paid)} paid · {formatCurrency(pending)} pending
+                <section key={g.key} className={`month-row ${isOpen ? "open" : ""}`}>
+                  <button className="month-row-head" onClick={() => toggleMonth(g.key)} aria-expanded={isOpen}>
+                    <span className="month-row-name">{monthLabel(g.year, g.month)}</span>
+                    <span className="month-row-figures">
+                      <span>{formatCurrency(g.total)}</span>
+                      {g.due > 0 && <span className="due">{formatCurrency(g.due)} due</span>}
                     </span>
+                    <ChevronDown size={18} strokeWidth={1.4} className="month-row-chevron" />
                   </button>
-                  {isOpen && (
-                    <div style={{ marginTop: 12 }}>
+                  <div className="month-row-reveal" aria-hidden={!isOpen}>
+                    <div className="month-row-body list">
                       {g.logs.map((log) => (
                         <LogCard key={log.id} log={log} onClick={() => setSelected(log)} />
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                </section>
               );
             })}
+            </div>
+          )}
 
           {groupByClient &&
             clientGroups.map(([client, clientLogs]) => {
               const total = clientLogs.reduce((s, l) => s + l.amount, 0);
               return (
-                <div key={client} className="card" style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginBottom: 10 }}>
+                <section key={client} className="day-group">
+                  <h2 className="day-heading client-heading">
                     <span>{client}</span>
                     <span>{formatCurrency(total)}</span>
+                  </h2>
+                  <div className="group list">
+                    {clientLogs.map((log) => (
+                      <LogCard key={log.id} log={log} onClick={() => setSelected(log)} />
+                    ))}
                   </div>
-                  {clientLogs.map((log) => (
-                    <LogCard key={log.id} log={log} onClick={() => setSelected(log)} />
-                  ))}
-                </div>
+                </section>
               );
             })}
 
           {logs.length === 0 && (
             <div className="empty-state">
-              <div className="empty-state-title">No payments yet</div>
-              <div>Once you log work, your earnings will show up here.</div>
+              <p className="empty-state-title">No earnings yet</p>
+              <p>Totals appear here once bookings are added.</p>
             </div>
           )}
         </>
       )}
 
-      {selected && (
-        <div className="modal-overlay" onClick={() => setSelected(null)}>
-          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{selected.clientName || selected.work}</h2>
-              <button className="icon-btn" onClick={() => setSelected(null)} aria-label="Close">
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <LogCard log={selected} onClick={() => {}} />
-              {selected.paymentStatus === "PENDING" ? (
-                <button className="primary-btn" onClick={() => handleMarkPaid(selected.id)}>
-                  Mark as Paid
+      {selected && (() => {
+        const received = receivedOf(selected);
+        const balance = selected.amount - received;
+        const close = () => {
+          setSelected(null);
+          setPartialOpen(false);
+          setPartialValue("");
+        };
+        return (
+          <div className="modal-overlay" onClick={close}>
+            <div className="modal-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Booking payment">
+              <div className="modal-header">
+                <span />
+                <h2 className="modal-title">{selected.clientName || "Booking"}</h2>
+                <button className="icon-btn" onClick={close} aria-label="Close">
+                  <X size={20} />
                 </button>
-              ) : (
+              </div>
+              <div className="modal-body">
+                <div className="group list"><LogCard log={selected} /></div>
+
+                {balance > 0 && (
+                  <>
+                    <div className="pay-summary">
+                      <span>Received {formatCurrency(received)}</span>
+                      <span className="due">Balance {formatCurrency(balance)}</span>
+                    </div>
+
+                    <button
+                      className="primary-btn"
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Mark as fully paid?",
+                          message: `${selected.clientName || "This booking"} will show ${formatCurrency(selected.amount)} received.`,
+                          confirmLabel: "Mark paid",
+                        });
+                        if (ok) {
+                          markPaid(selected.id);
+                          close();
+                        }
+                      }}
+                    >
+                      Mark {formatCurrency(balance)} as paid
+                    </button>
+
+                    {!partialOpen ? (
+                      <button className="ghost-btn full" onClick={() => setPartialOpen(true)}>
+                        Mark partial
+                      </button>
+                    ) : (
+                      <form
+                        className="partial-form"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const add = Number(partialValue);
+                          if (!add || add <= 0) return;
+                          recordPayment(selected.id, received + add);
+                          close();
+                        }}
+                      >
+                        <label className="field-label" htmlFor="partial-amount">Amount received now</label>
+                        <div className="partial-row">
+                          <input
+                            id="partial-amount"
+                            type="number"
+                            inputMode="numeric"
+                            min="1"
+                            max={balance}
+                            autoFocus
+                            className="field-input"
+                            value={partialValue}
+                            onChange={(e) => setPartialValue(e.target.value)}
+                            placeholder={`Up to ${formatCurrency(balance)}`}
+                          />
+                          <button type="submit" className="save-pill" disabled={!Number(partialValue)}>
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </>
+                )}
+
+                <button className="ghost-btn full with-icon" onClick={() => void saveInvoice(selected)}>
+                  <FileDown size={18} strokeWidth={1.8} /> Save invoice
+                </button>
+
                 <button
-                  className="primary-btn secondary"
+                  className="ghost-btn full"
                   onClick={() => {
                     setEditing(selected);
-                    setSelected(null);
+                    close();
                   }}
                 >
-                  Edit details
+                  Edit booking
                 </button>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {editing && (
         <LogForm
-          title="Edit Log"
+          title="Edit booking"
           initial={editing}
-          onSubmit={async (input: WorkLogInput) => {
-            await editLog(editing.id, input);
-          }}
+          onSubmit={(input: WorkLogInput) => editLog(editing.id, input)}
           onClose={() => setEditing(null)}
         />
       )}

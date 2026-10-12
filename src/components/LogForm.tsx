@@ -1,40 +1,59 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { LockKeyhole, Minus, Plus } from "lucide-react";
 import type { PaymentStatus, WorkLog, WorkLogInput, WorkStatus } from "../types";
-import { isPastOrToday, joinWorks, parseWorks, todayISO } from "../utils/format";
-import { TimeInput } from "./TimeInput";
+import { formatCurrency, isPastOrToday, joinWorks, parseWorks, todayISO } from "../utils/format";
+import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
+import { DateField, SelectField, TimeField } from "./Pickers";
 
 interface LogFormProps {
   initial?: WorkLog | null;
   defaultDate?: string;
   forceStatus?: WorkStatus;
   title: string;
-  onSubmit: (input: WorkLogInput) => Promise<void>;
+  onSubmit: (input: WorkLogInput) => void;
   onClose: () => void;
 }
 
-const EVENT_TYPES = ["", "Bridal", "Bridal Party", "Photoshoot", "Party", "Gala", "Other"];
-const WORK_TYPES = [
-  "Saree Draping",
-  "Hair Style",
-  "Makeup",
-  "Saree Pre Pleating",
-  "Assisting",
-  "Travel",
-  "Shop Work",
-];
+const KNOWN_SERVICES = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 
 export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, onClose }: LogFormProps) {
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayISO());
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
-  // `work` is edited here as a list and serialized to a comma-delimited string
-  // on submit (see joinWorks). Pre-defined types plus any custom entries the
-  // log already had are all just chips.
+  const [altPhone, setAltPhone] = useState(initial?.altPhone ?? "");
   const [selectedWorks, setSelectedWorks] = useState<string[]>(parseWorks(initial?.work ?? ""));
   const [customWork, setCustomWork] = useState("");
+  const [eventType, setEventType] = useState(initial?.eventType ?? "");
+  const [location, setLocation] = useState(initial?.location ?? "");
+  const [bridesmaids, setBridesmaids] = useState(initial?.bridesmaids ?? 0);
+  const [startTime, setStartTime] = useState(initial?.startTime ?? "");
+  const [endTime, setEndTime] = useState(initial?.endTime ?? "");
+  const [typedAmount, setTypedAmount] = useState(initial ? String(initial.amount || "") : "");
+  const [amountTouched, setAmountTouched] = useState(Boolean(initial));
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initial?.paymentStatus ?? "PENDING");
+  const [own, setOwn] = useState(initial?.own ?? true);
+  const [referrerName, setReferrerName] = useState(initial?.referrerName ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [privateNotes, setPrivateNotes] = useState(initial?.privateNotes ?? "");
+  const [paidSoFar, setPaidSoFar] = useState(initial?.paidAmount ? String(initial.paidAmount) : "");
+  const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
+  const [error, setError] = useState<string | null>(null);
 
-  const chipOptions = Array.from(new Set([...WORK_TYPES, ...selectedWorks]));
+  const customServices = selectedWorks.filter((w) => !KNOWN_SERVICES.has(w));
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  // Menu prices add up into the amount until the amount is edited by hand.
+  const menuTotal = useMemo(
+    () => selectedWorks.reduce((sum, w) => sum + (servicePrice(w) ?? 0), 0),
+    [selectedWorks]
+  );
+  const amount = amountTouched ? typedAmount : menuTotal ? String(menuTotal) : "";
 
   function toggleWork(w: string) {
     setSelectedWorks((prev) => (prev.includes(w) ? prev.filter((x) => x !== w) : [...prev, w]));
@@ -46,301 +65,299 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     setSelectedWorks((prev) => (prev.includes(w) ? prev : [...prev, w]));
     setCustomWork("");
   }
-  const [eventType, setEventType] = useState(initial?.eventType ?? "");
-  const [startTime, setStartTime] = useState(initial?.startTime ?? "");
-  const [endTime, setEndTime] = useState(initial?.endTime ?? "");
-  const [qty, setQty] = useState(initial ? String(initial.qty) : "1");
-  const [price, setPrice] = useState(initial ? String(initial.price) : "");
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
-  const [amountTouched, setAmountTouched] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initial?.paymentStatus ?? "PENDING");
-  const [own, setOwn] = useState(initial?.own ?? true);
-  const [referrerName, setReferrerName] = useState(initial?.referrerName ?? "");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    if (amountTouched) return;
-    const q = Number(qty) || 0;
-    const p = Number(price) || 0;
-    if (q && p) setAmount(String(q * p));
-  }, [qty, price, amountTouched]);
 
   const autoStatus: WorkStatus = isPastOrToday(date) ? "WORKED" : "RESERVED";
   const effectiveStatus = forceStatus ?? statusOverride ?? autoStatus;
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     const workValue = joinWorks(selectedWorks);
     if (!workValue || !date) {
-      setError("Please select at least one work and a date.");
+      setError("Choose at least one service and a date.");
       return;
     }
     if (!own && !referrerName.trim()) {
-      setError("Please enter who referred this work.");
+      setError("Add who referred this booking.");
       return;
     }
     if (startTime && endTime && endTime <= startTime) {
-      setError("End time must be after start time.");
+      setError("Ready time needs to be after the start time.");
       return;
     }
-    const amountNum = Number(amount);
-    if (!amountNum || amountNum <= 0) {
-      setError("Amount must be greater than 0.");
+    const amountNum = Number(amount) || 0;
+    if (amountNum < 0) {
+      setError("Amount can't be negative.");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await onSubmit({
-        date,
-        clientName: clientName.trim(),
-        clientPhone: clientPhone.trim(),
-        work: workValue,
-        eventType,
-        qty: Number(qty) || 1,
-        price: Number(price) || amountNum,
-        startTime,
-        endTime,
-        amount: amountNum,
-        paymentStatus,
-        status: effectiveStatus,
-        own,
-        referrerName: own ? "" : referrerName.trim(),
-        notes: notes.trim(),
-      });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setSubmitting(false);
-    }
+    const received = Math.min(Number(paidSoFar) || 0, amountNum);
+    const fullyPaid = paymentStatus === "PAID" || (amountNum > 0 && received >= amountNum);
+    const qty = initial?.qty && initial.qty > 1 ? initial.qty : 1;
+    onSubmit({
+      date,
+      clientName: clientName.trim(),
+      clientPhone: clientPhone.trim(),
+      altPhone: altPhone.trim(),
+      work: workValue,
+      eventType,
+      location: location.trim(),
+      bridesmaids,
+      qty,
+      price: amountNum / qty,
+      startTime,
+      endTime,
+      amount: amountNum,
+      paymentStatus: fullyPaid ? "PAID" : "PENDING",
+      paidAmount: fullyPaid ? amountNum : received,
+      status: effectiveStatus,
+      own,
+      referrerName: own ? "" : referrerName.trim(),
+      notes: notes.trim(),
+      privateNotes: privateNotes.trim(),
+    });
+    onClose();
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-sheet form-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={title}>
         <div className="modal-header">
-          <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <X size={20} />
-          </button>
+          <button type="button" className="text-btn" onClick={onClose}>Cancel</button>
+          <h2 className="modal-title">{title}</h2>
+          <button type="submit" form="booking-form" className="save-pill">Save</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form id="booking-form" onSubmit={handleSubmit} className="modal-body">
           {error && <div className="inline-error">{error}</div>}
 
-          <label className="field-label">Date</label>
-          <input
-            type="date"
-            className="field-input"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
+          <fieldset className="form-section">
+            <legend>The client</legend>
+            <label className="field-label" htmlFor="f-name">Name</label>
+            <input id="f-name" className="field-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Bride or client's name" />
 
-          <label className="field-label">Client name (optional)</label>
-          <input
-            type="text"
-            className="field-input"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            placeholder="e.g. Sarah Nguyen"
-          />
+            <div className="field-row">
+              <div>
+                <label className="field-label" htmlFor="f-phone">Contact number</label>
+                <input id="f-phone" type="tel" className="field-input" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="+91" />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="f-alt">Alternative number</label>
+                <input id="f-alt" type="tel" className="field-input" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} placeholder="Optional" />
+              </div>
+            </div>
+          </fieldset>
 
-          <label className="field-label">Client contact number (optional)</label>
-          <input
-            type="tel"
-            className="field-input"
-            value={clientPhone}
-            onChange={(e) => setClientPhone(e.target.value)}
-            placeholder="e.g. +91 98765 43210"
-          />
+          <fieldset className="form-section">
+            <legend>The occasion</legend>
+            <div className="field-row">
+              <div>
+                <label className="field-label" htmlFor="f-date">Date</label>
+                <DateField id="f-date" value={date} onChange={setDate} />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="f-event">Event</label>
+                <SelectField
+                  id="f-event"
+                  label="Event"
+                  value={eventType}
+                  options={[...new Set([...EVENT_TYPES, eventType].filter(Boolean))]}
+                  onChange={setEventType}
+                />
+              </div>
+            </div>
 
-          <label className="field-label">Work (select one or more)</label>
-          <div className="work-chips">
-            {chipOptions.map((w) => (
-              <button
-                key={w}
-                type="button"
-                className={`work-chip ${selectedWorks.includes(w) ? "active" : ""}`}
-                onClick={() => toggleWork(w)}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
-
-          <div className="work-custom-row">
+            <label className="field-label" htmlFor="f-location">Place or venue</label>
             <input
-              type="text"
+              id="f-location"
               className="field-input"
-              value={customWork}
-              onChange={(e) => setCustomWork(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCustomWork();
-                }
-              }}
-              placeholder="Add another, e.g. Nail Art"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Venue name, address or a Google Maps link"
             />
-            <button type="button" className="segmented-btn work-add-btn" onClick={addCustomWork}>
-              Add
-            </button>
-          </div>
 
-          <label className="field-label">Event type (optional)</label>
-          <select className="field-input" value={eventType} onChange={(e) => setEventType(e.target.value)}>
-            {EVENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t || "None"}
-              </option>
+            <div className="field-row">
+              <div>
+                <label className="field-label" htmlFor="f-start">Start time</label>
+                <TimeField id="f-start" label="Start time" value={startTime} onChange={setStartTime} />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="f-ready">Ready by</label>
+                <TimeField id="f-ready" label="Ready by" value={endTime} onChange={setEndTime} />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="form-section">
+            <legend>Services</legend>
+            {SERVICE_GROUPS.map((group) => (
+              <div key={group.title} className="service-group">
+                <div className="service-group-title">{group.title}</div>
+                <div className="service-options">
+                  {group.services.map((s) => {
+                    const active = selectedWorks.includes(s.name);
+                    return (
+                      <button
+                        key={s.name}
+                        type="button"
+                        className={`service-option ${active ? "active" : ""}`}
+                        onClick={() => toggleWork(s.name)}
+                        aria-pressed={active}
+                      >
+                        <span className="service-name">{s.name}</span>
+                        <span className="service-price">{s.price ? formatCurrency(s.price) : "On call"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
-          </select>
 
-          <label className="field-label">Start time (optional)</label>
-          <TimeInput value={startTime} onChange={setStartTime} />
+            {customServices.length > 0 && (
+              <div className="service-options">
+                {customServices.map((w) => (
+                  <button key={w} type="button" className="service-option active" onClick={() => toggleWork(w)} aria-pressed>
+                    <span className="service-name">{w}</span>
+                    <span className="service-price">Custom</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-          <label className="field-label">End time (optional)</label>
-          <TimeInput value={endTime} onChange={setEndTime} />
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label className="field-label">Qty</label>
+            <div className="work-custom-row">
               <input
-                type="number"
-                min="1"
-                step="1"
                 className="field-input"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
+                value={customWork}
+                onChange={(e) => setCustomWork(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomWork();
+                  }
+                }}
+                placeholder="Something else, e.g. Hair only"
+                aria-label="Add a custom service"
               />
+              <button type="button" className="ghost-btn" onClick={addCustomWork}>Add</button>
             </div>
-            <div style={{ flex: 1 }}>
-              <label className="field-label">Price</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className="field-input"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="per unit"
-              />
+
+            <label className="field-label">Bridesmaids' makeup</label>
+            <div className="stepper">
+              <button type="button" className="round-btn" onClick={() => setBridesmaids((n) => Math.max(0, n - 1))} aria-label="Fewer bridesmaids">
+                <Minus size={16} />
+              </button>
+              <span className="stepper-value">{bridesmaids === 0 ? "None" : bridesmaids}</span>
+              <button type="button" className="round-btn" onClick={() => setBridesmaids((n) => n + 1)} aria-label="More bridesmaids">
+                <Plus size={16} />
+              </button>
             </div>
-          </div>
+          </fieldset>
 
-          <label className="field-label">Amount</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="field-input"
-            value={amount}
-            onChange={(e) => {
-              setAmountTouched(true);
-              setAmount(e.target.value);
-            }}
-            placeholder="0"
-            required
-          />
+          <fieldset className="form-section">
+            <legend>Payment</legend>
+            <label className="field-label" htmlFor="f-amount">Amount</label>
+            <input
+              id="f-amount"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              className="field-input field-amount"
+              value={amount}
+              onChange={(e) => {
+                setAmountTouched(true);
+                setTypedAmount(e.target.value);
+              }}
+              placeholder="0"
+            />
+            {amountTouched && menuTotal > 0 && Number(amount) !== menuTotal && (
+              <button type="button" className="link-btn" onClick={() => setAmountTouched(false)}>
+                Use menu total, {formatCurrency(menuTotal)}
+              </button>
+            )}
 
-          <label className="field-label">Work type</label>
-          <div className="segmented">
-            <button
-              type="button"
-              className={`segmented-btn ${own ? "active" : ""}`}
-              onClick={() => setOwn(true)}
-            >
-              Direct
-            </button>
-            <button
-              type="button"
-              className={`segmented-btn ${!own ? "active" : ""}`}
-              onClick={() => setOwn(false)}
-            >
-              Referred
-            </button>
-          </div>
-
-          <div className={`reveal-field ${!own ? "open" : ""}`}>
-            <div className="reveal-field-inner">
-              <label className="field-label">Referred by</label>
-              <input
-                type="text"
-                className="field-input"
-                value={referrerName}
-                onChange={(e) => setReferrerName(e.target.value)}
-                placeholder="e.g. Meera (event planner)"
-                required={!own}
-              />
+            <div className="segmented">
+              <button type="button" className={`segmented-btn ${paymentStatus === "PENDING" ? "active" : ""}`} onClick={() => setPaymentStatus("PENDING")}>
+                Payment due
+              </button>
+              <button type="button" className={`segmented-btn ${paymentStatus === "PAID" ? "active" : ""}`} onClick={() => setPaymentStatus("PAID")}>
+                Paid
+              </button>
             </div>
-          </div>
 
-          <label className="field-label">Payment status</label>
-          <div className="segmented">
-            <button
-              type="button"
-              className={`segmented-btn ${paymentStatus === "PAID" ? "active" : ""}`}
-              onClick={() => setPaymentStatus("PAID")}
-            >
-              Paid
-            </button>
-            <button
-              type="button"
-              className={`segmented-btn ${paymentStatus === "PENDING" ? "active" : ""}`}
-              onClick={() => setPaymentStatus("PENDING")}
-            >
-              Pending
-            </button>
-          </div>
+            <div className={`reveal-field ${paymentStatus === "PENDING" ? "open" : ""}`}>
+              <div className="reveal-field-inner">
+                <label className="field-label" htmlFor="f-paid">Received so far</label>
+                <input
+                  id="f-paid"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  className="field-input"
+                  value={paidSoFar}
+                  onChange={(e) => setPaidSoFar(e.target.value)}
+                  placeholder="Advance or part payment, if any"
+                  tabIndex={paymentStatus === "PENDING" ? 0 : -1}
+                />
+              </div>
+            </div>
 
-          {!forceStatus && (
-            <>
-              <label className="field-label">Status</label>
+            <div className="segmented">
+              <button type="button" className={`segmented-btn ${own ? "active" : ""}`} onClick={() => setOwn(true)}>
+                Direct client
+              </button>
+              <button type="button" className={`segmented-btn ${!own ? "active" : ""}`} onClick={() => setOwn(false)}>
+                Referred
+              </button>
+            </div>
+
+            <div className={`reveal-field ${!own ? "open" : ""}`}>
+              <div className="reveal-field-inner">
+                <label className="field-label" htmlFor="f-ref">Referred by</label>
+                <input id="f-ref" className="field-input" value={referrerName} onChange={(e) => setReferrerName(e.target.value)} placeholder="Planner, studio or artist" tabIndex={own ? -1 : 0} />
+              </div>
+            </div>
+
+            {!forceStatus && (
               <div className="segmented">
-                <button
-                  type="button"
-                  className={`segmented-btn ${effectiveStatus === "WORKED" ? "active" : ""}`}
-                  onClick={() => setStatusOverride("WORKED")}
-                >
-                  Worked
+                <button type="button" className={`segmented-btn ${effectiveStatus === "RESERVED" ? "active" : ""}`} onClick={() => setStatusOverride("RESERVED")}>
+                  Booked
                 </button>
-                <button
-                  type="button"
-                  className={`segmented-btn ${effectiveStatus === "RESERVED" ? "active" : ""}`}
-                  onClick={() => setStatusOverride("RESERVED")}
-                >
-                  Reserved
+                <button type="button" className={`segmented-btn ${effectiveStatus === "WORKED" ? "active" : ""}`} onClick={() => setStatusOverride("WORKED")}>
+                  Done
                 </button>
               </div>
-            </>
-          )}
+            )}
+          </fieldset>
 
-          <label className="field-label">Notes</label>
-          <textarea
-            className="field-input"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Optional notes..."
-          />
+          <fieldset className="form-section">
+            <legend>Notes for the team</legend>
+            <textarea
+              className="field-input"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Look, outfit colours, timings, anything the assistants should know"
+              aria-label="Notes"
+            />
+          </fieldset>
 
-          <button type="submit" className="primary-btn" disabled={submitting}>
-            {submitting ? "Saving..." : "Save"}
-          </button>
+          <fieldset className="form-section private-section">
+            <legend>Notes for me</legend>
+            <p className="field-hint">
+              <LockKeyhole size={13} strokeWidth={1.8} /> Only you see these. Assistants never receive them.
+            </p>
+            <textarea
+              className="field-input"
+              value={privateNotes}
+              onChange={(e) => setPrivateNotes(e.target.value)}
+              rows={3}
+              placeholder="Advance details, pricing notes, reminders"
+              aria-label="Notes for me"
+            />
+          </fieldset>
+
+          <button type="submit" className="primary-btn">Save booking</button>
         </form>
       </div>
     </div>

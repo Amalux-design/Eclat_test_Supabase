@@ -1,13 +1,27 @@
-# Glow Diary
+# Éclat by Harsha
 
-A mobile-first work tracker for a freelance makeup artist: log bookings, manage a
-calendar of worked/reserved dates, and track payments. Google Sheets is the
-database; Google Apps Script is the API layer.
+Mobile-first booking diary for Éclat by Harsha, a bridal makeup studio in
+Calicut: bookings, a calendar of booked/done dates, and earnings. Google Sheets
+is the database; Google Apps Script is the API layer.
+
+## Modes
+
+- **View-only** (default, for assistants): Calendar and Bookings. Shows client
+  name, services, event, date, times, location, bridesmaids and notes. No
+  edits, no phone numbers, prices or payment status. The server strips those
+  fields; they never reach the device.
+- **Admin**: tap the key icon in the header and enter the 6-digit PIN. Adds
+  Earnings, editing, the "New booking" button and the sync badge. Stays
+  unlocked on that device until the lock icon is tapped or the PIN is changed.
+  In demo mode the PIN is `123456`.
+
+See [`apps-script/README.md`](./apps-script/README.md) for setting/changing the
+PIN and the lockout rules.
 
 ## Project structure
 
 ```
-glow-diary/
+eclat/
   src/            React + TypeScript frontend (Vite)
   apps-script/    Google Apps Script backend (Code.gs) + setup README
 ```
@@ -15,7 +29,7 @@ glow-diary/
 ## Frontend setup
 
 ```bash
-cd glow-diary
+cd eclat
 npm install
 npm run dev
 ```
@@ -27,7 +41,7 @@ to try it out. A "Demo mode" banner shows at the top when this fallback is activ
 
 1. Follow [`apps-script/README.md`](./apps-script/README.md) to create the
    Sheet, paste in `Code.gs`, and deploy it as a Web App.
-2. Copy `.env.example` to `.env` in the `glow-diary` root:
+2. Copy `.env.example` to `.env` in the project root:
 
    ```
    VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/XXXXXXX/exec
@@ -76,7 +90,7 @@ git push -u origin master
 
 ## Tech stack
 
-- Vite + React 18 + TypeScript (strict)
+- Vite + React 19 + TypeScript (strict)
 - React Context + hooks for shared state (no Redux)
 - `react-router-dom` (hash routing) for view switching
 - `lucide-react` icons
@@ -85,35 +99,26 @@ git push -u origin master
 
 ## Views
 
-- **Logs** — chronological list of bookings grouped by date, add/edit via a
-  bottom-sheet form, swipe-to-delete style trailing delete action.
-- **Calendar** — month grid with Worked/Reserved/Mixed day states, tap a date
-  to see its bookings, reserve empty future dates, convert a reservation to a
-  completed job.
-- **Payments** — earnings summary cards, monthly or per-client breakdown,
-  one-tap "Mark as Paid" on pending items.
+- **Bookings**: quick chips (All, Today, Tomorrow, This week, Upcoming, Past,
+  and Payment due for admin) pin the chosen group to the top in a wine panel,
+  ordered by start time; the rest of the list follows by date. Opens on Today.
+- **Calendar**: Monday-first month grid in booked/done/both colours; tap a date
+  for its bookings. Admin can add, edit and mark bookings as done there.
+- **Earnings** (admin): totals, received vs due, by month or by client,
+  one-tap "Mark as paid".
 
-## Performance: caching & indexing
+## Sync and speed
 
-Apps Script + Sheets is the slowest link in this stack (cold starts, full-sheet
-scans), so both ends are optimized around it:
-
-- **Instant reload (frontend):** `LogsProvider` ([src/context/LogsContext.tsx](./src/context/LogsContext.tsx))
-  persists the last-known log list to `localStorage`. On the next app open it
-  paints that cached data immediately (no spinner) and revalidates against the
-  API in the background — stale-while-revalidate, so the UI never blocks on
-  the network for a repeat visit.
-- **Fast indexing (frontend):** the same provider builds `logsByDate` and
-  `logsByMonth` lookup maps once per data change (`O(n)`), which every page
-  reuses instead of each one re-scanning the full log array with its own
-  `filter`/`find` pass. Calendar's month view and Logs' date grouping are both
-  `O(1)` map lookups now.
-- **Optimistic writes:** delete and "Mark as Paid" update local state
-  immediately and roll back only if the API call fails, so those actions feel
-  instant instead of waiting on a round trip.
-- **Server-side caching:** `getLogs()` in `Code.gs` is cached with
-  `CacheService` for up to 6 hours and invalidated on every write made through
-  the app, so the full-sheet read + sort only happens once per cache window
-  instead of on every request. See the caching note in
-  [`apps-script/README.md`](./apps-script/README.md) for the one caveat
-  (manual edits made directly in the Sheet UI).
+- **Instant saves:** admin edits apply on screen immediately and go into a
+  background save queue stored in IndexedDB ([src/sync/saveQueue.ts](./src/sync/saveQueue.ts)).
+  It sends changes in order, retries with back-off (2 s → 1 min), resumes when
+  the device comes back online, and survives closing the app. The header badge
+  shows Saved / Saving / Offline.
+- **Instant launch:** the last bookings list is cached per mode in
+  `localStorage` and painted on the first frame, then refreshed.
+- **Auto-refresh:** every open device checks a tiny version number every
+  2 minutes (`POLL_INTERVAL_MS` in [src/context/LogsContext.tsx](./src/context/LogsContext.tsx))
+  and downloads the list only when it changed; paused while the app is hidden,
+  backs off to 8 minutes on errors.
+- **Server:** cached reads (`CacheService`), `TextFinder` row lookup, writes
+  serialised with `LockService`, idempotent create/delete so retries are safe.

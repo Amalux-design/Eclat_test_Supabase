@@ -1,8 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#9B8AA6"/>
-  <path
-    fill="#FAF8F6"
-    d="M32 14c1 7 3 12 5.5 14.5S43 32 50 33c-7 1-10.5 2.5-13 5S33 45 32 52c-1-7-3-12-5.5-14.5S18 34 11 33c7-1 10.5-2.5 13-5S31 21 32 14Z"
-  />
-  <circle cx="47" cy="17" r="3" fill="#FAF8F6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#461A1C"/>
+  <rect x="34" y="34" width="444" height="444" rx="86" fill="none" stroke="#C9A77F" stroke-opacity="0.5" stroke-width="4"/>
+  <text x="256" y="338" text-anchor="middle" font-family="Didot, 'Bodoni 72', 'Times New Roman', serif" font-size="280" fill="#F3E6DA">É</text>
 </svg>

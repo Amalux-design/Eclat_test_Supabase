@@ -1,33 +1,31 @@
-import { NotebookPen, CalendarDays, Wallet } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { CalendarDays, NotebookPen, Wallet } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const ITEMS = [
-  { to: "/", label: "Calendar", icon: CalendarDays, end: true },
-  { to: "/logs", label: "Logs", icon: NotebookPen, end: false },
-  { to: "/payments", label: "Payments", icon: Wallet, end: false },
+  { to: "/", label: "Calendar", icon: CalendarDays, adminOnly: false },
+  { to: "/logs", label: "Bookings", icon: NotebookPen, adminOnly: false },
+  { to: "/payments", label: "Earnings", icon: Wallet, adminOnly: true },
 ];
 
 export function BottomNav() {
+  const { isAdmin } = useAuth();
+  const { pathname } = useLocation();
+  const items = ITEMS.filter((item) => isAdmin || !item.adminOnly);
+  const activeIndex = Math.max(
+    0,
+    items.findIndex((item) => (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to)))
+  );
+
+  // Tabs are equal fixed widths, so the highlight only ever slides: no
+  // measuring, no reflow, nothing to drift out of place.
   return (
-    <nav className="bottom-nav">
-      {ITEMS.map(({ to, label, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-        >
-          {({ isActive }) => (
-            <>
-              <Icon
-                size={22}
-                strokeWidth={2}
-                fill={isActive ? "currentColor" : "none"}
-                stroke={isActive ? "var(--color-surface)" : "currentColor"}
-              />
-              <span>{label}</span>
-            </>
-          )}
+    <nav className="bottom-nav" style={{ ["--tabs" as string]: items.length, ["--active" as string]: activeIndex }}>
+      <span className="nav-indicator" aria-hidden="true" />
+      {items.map(({ to, label, icon: Icon }) => (
+        <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+          <Icon size={21} strokeWidth={1.5} />
+          <span className="nav-label">{label}</span>
         </NavLink>
       ))}
     </nav>
