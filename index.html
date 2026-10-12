@@ -89,7 +89,17 @@
         clip-path: none;
         animation: splash-shimmer 2.2s cubic-bezier(0.45, 0, 0.55, 1) 0.2s infinite;
       }
+      /* Match the phone's launch screen exactly: same logo size (Android
+         draws it at a fixed ~168px wide) and dead centre, with the gold line
+         hung below so it doesn't push the logo up. */
+      #splash.instant .splash-logo {
+        width: 168px;
+      }
       #splash.instant .splash-line {
+        position: absolute;
+        top: calc(50% + 52px);
+        left: 50%;
+        margin-left: -36px;
         animation-delay: 0.1s;
       }
       @keyframes splash-reveal {
