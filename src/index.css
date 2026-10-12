@@ -2813,3 +2813,35 @@ textarea.field-input {
     opacity: 0.6;
   }
 }
+
+/* ---------- one action pill: "+ Add" and "+ New" match exactly ---------- */
+
+.agenda-add,
+.fab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px 0 12px;
+  border: 1.5px solid var(--oxblood);
+  border-radius: 999px;
+  color: var(--oxblood);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Inline Add sits on the cream card: no fill. */
+.agenda-add {
+  background: transparent;
+}
+
+/* Floating New hovers over content: same pill, frosted glass behind it. */
+.fab {
+  background: rgba(255, 250, 245, 0.55);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  box-shadow: 0 8px 22px rgba(63, 23, 21, 0.14);
+}
