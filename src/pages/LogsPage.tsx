@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
 import { useAuth } from "../context/AuthContext";
 import { LogCard } from "../components/LogCard";
@@ -64,6 +65,44 @@ export function LogsPage() {
   const [chip, setChip] = useState<ChipId>("today");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<WorkLog | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  function openSearch() {
+    rowRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+    setSearchOpen(true);
+    // Focus inside the tap so the phone keyboard opens straight away.
+    searchRef.current?.focus({ preventScroll: true });
+  }
+
+  function closeSearch() {
+    setQuery("");
+    setSearchOpen(false);
+    searchRef.current?.blur();
+  }
+
+  // Search runs on the device over loaded bookings: instant, no server call.
+  const q = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!q) return null;
+    return logs
+      .filter((l) =>
+        [
+          l.clientName,
+          l.work,
+          l.eventType,
+          l.location,
+          l.notes,
+          ...(isAdmin ? [l.clientPhone, l.altPhone, l.privateNotes, l.referrerName] : []),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      )
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : byTime(a, b)));
+  }, [logs, q, isAdmin]);
 
   const activeChip = !isAdmin && chip === "pending" ? "today" : chip;
 
@@ -124,13 +163,36 @@ export function LogsPage() {
         <h1 className="page-title">Bookings</h1>
       </div>
 
-      <div className="chip-bar"><div className="chip-row" role="tablist" aria-label="Show bookings">
+      <div className="chip-bar"><div ref={rowRef} className={`chip-row ${searchOpen ? "searching" : ""}`} role="tablist" aria-label="Show bookings">
+        <div className={`search-pill ${searchOpen ? "open" : ""}`} onClick={searchOpen ? undefined : openSearch}>
+          <Search size={17} strokeWidth={2} className="search-pill-icon" aria-hidden="true" />
+          <input
+            ref={searchRef}
+            className="search-pill-input"
+            type="search"
+            inputMode="search"
+            enterKeyHint="search"
+            placeholder="Search bookings"
+            aria-label="Search bookings"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => !searchOpen && openSearch()}
+            onKeyDown={(e) => e.key === "Escape" && closeSearch()}
+            tabIndex={searchOpen ? 0 : -1}
+          />
+          {searchOpen && (
+            <button className="search-pill-close" onClick={closeSearch} aria-label="Close search">
+              <X size={16} strokeWidth={2.2} />
+            </button>
+          )}
+        </div>
         {CHIPS.filter((c) => isAdmin || !c.adminOnly).map((c) => (
           <button
             key={c.id}
             role="tab"
             aria-selected={activeChip === c.id}
             className={`chip ${activeChip === c.id ? "active" : ""}`}
+            tabIndex={searchOpen ? -1 : 0}
             onClick={() => setChip(c.id === activeChip && c.id !== "all" ? "all" : c.id)}
           >
             {c.label}
@@ -141,7 +203,29 @@ export function LogsPage() {
       {error && <div className="inline-note">{error}</div>}
       {loading && <Loader label="Loading bookings" />}
 
-      {!loading && pinned && activeChip !== "all" && (
+      {!loading && results && (
+        <section key="search" className="pinned" aria-label="Search results" aria-live="polite">
+          <header className="pinned-head">
+            <h2 className="pinned-title">Results</h2>
+            <span className="pinned-count">
+              {results.length} {results.length === 1 ? "booking" : "bookings"}
+            </span>
+          </header>
+          {results.length === 0 && <p className="pinned-empty">No bookings match "{query.trim()}".</p>}
+          {results.map((log) => (
+            <LogCard
+              key={log.id}
+              log={log}
+              tone="wine"
+              dateLabel={shortDate(log.date)}
+              onClick={open && (() => open(log))}
+              onDelete={isAdmin ? () => handleDelete(log) : undefined}
+            />
+          ))}
+        </section>
+      )}
+
+      {!loading && !results && pinned && activeChip !== "all" && (
         <section key={activeChip} className="pinned" aria-label={PINNED_TITLE[activeChip]}>
           <header className="pinned-head">
             <h2 className="pinned-title">{PINNED_TITLE[activeChip]}</h2>
@@ -171,6 +255,7 @@ export function LogsPage() {
       )}
 
       {!loading &&
+        !results &&
         restByDate.map((group) => (
           <section key={group.date} className="day-group">
             <h2 className="day-heading">{formatDateHeading(group.date)}</h2>

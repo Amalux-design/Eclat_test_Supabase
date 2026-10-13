@@ -3091,3 +3091,117 @@ button,
     transform: translate3d(0, 8px, 0);
   }
 }
+
+/* ---------- Bookings: search pill + even pill outlines ---------- */
+
+/* A full, even hairline on every inactive pill (the sub-pixel shadow it
+   replaces drew unevenly at the rounded ends on some screens). */
+.chip {
+  box-shadow: none;
+  border: 1px solid rgba(63, 23, 21, 0.14);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.chip.active {
+  border-color: var(--oxblood);
+}
+
+.chip-row {
+  align-items: center;
+}
+
+.chip,
+.search-pill {
+  transition: opacity 0.3s ease, transform 0.45s var(--ease-flow), background-color 0.25s ease, color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* Collapsed: a round pill with the search icon. Open: grows across the row. */
+.search-pill {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(63, 23, 21, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--oxblood);
+  cursor: pointer;
+  overflow: hidden;
+  transition: width 0.5s var(--ease-flow), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.search-pill.open {
+  width: calc(min(100vw, 680px) - 32px);
+  cursor: text;
+  border-color: rgba(66, 12, 21, 0.45);
+  box-shadow: 0 4px 14px rgba(63, 23, 21, 0.08);
+}
+
+.search-pill-icon {
+  position: absolute;
+  left: 9px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.search-pill-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0 40px 0 36px;
+  font-size: 16px;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity 0.25s ease 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-pill-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-pill.open .search-pill-input {
+  opacity: 1;
+}
+
+.search-pill:not(.open) .search-pill-input {
+  pointer-events: none;
+}
+
+.search-pill-close {
+  position: absolute;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+  animation: fade 0.3s ease 0.15s both;
+}
+
+/* While searching, the date pills slide away to the right. */
+.chip-row.searching .chip {
+  opacity: 0;
+  transform: translate3d(40px, 0, 0);
+  pointer-events: none;
+}
+
+.chip-row.searching {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-pill,
+  .search-pill-input {
+    transition: none;
+  }
+}
