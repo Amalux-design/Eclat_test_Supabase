@@ -44,10 +44,14 @@ export function LogCard({ log, onClick, onDelete, dateLabel, tone = "paper" }: L
           {isAdmin && log.amount > 0 && <span className="booking-amount">{formatCurrency(log.amount)}</span>}
         </div>
 
-        <p className="booking-services">
-          {services.join(", ")}
-          {log.eventType && <span className="booking-event"> for {log.eventType.toLowerCase()}</span>}
-        </p>
+        {(services.length > 0 || log.eventType) && (
+          <p className="booking-services">
+            {services.length > 0 ? services.join(", ") : log.eventType}
+            {services.length > 0 && log.eventType && (
+              <span className="booking-event"> for {log.eventType.toLowerCase()}</span>
+            )}
+          </p>
+        )}
 
         {(log.location || log.bridesmaids > 0) && (
           <div className="booking-meta">

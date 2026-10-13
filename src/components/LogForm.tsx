@@ -75,24 +75,14 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     e.preventDefault();
     setError(null);
 
+    // Only the name is required; everything else can be filled in later.
+    if (!clientName.trim()) {
+      setError("Add the client's name to save this booking.");
+      document.getElementById("f-name")?.focus();
+      return;
+    }
     const workValue = joinWorks(selectedWorks);
-    if (!workValue || !date) {
-      setError("Choose at least one service and a date.");
-      return;
-    }
-    if (!own && !referrerName.trim()) {
-      setError("Add who referred this booking.");
-      return;
-    }
-    if (startTime && endTime && endTime <= startTime) {
-      setError("Ready time needs to be after the start time.");
-      return;
-    }
-    const amountNum = Number(amount) || 0;
-    if (amountNum < 0) {
-      setError("Amount can't be negative.");
-      return;
-    }
+    const amountNum = Math.max(0, Number(amount) || 0);
 
     const received = Math.min(Number(paidSoFar) || 0, amountNum);
     const fullyPaid = paymentStatus === "PAID" || (amountNum > 0 && received >= amountNum);
@@ -142,7 +132,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
           <fieldset className="form-section">
             <legend>The client</legend>
-            <label className="field-label" htmlFor="f-name">Name</label>
+            <label className="field-label" htmlFor="f-name">Name (required)</label>
             <input id="f-name" className="field-input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Bride or client's name" />
 
             <div className="field-row">
