@@ -18,10 +18,21 @@ export function AppHeader() {
   // Hairline under the header only once content scrolls beneath it (iOS
   // scroll-edge behaviour), the same on every page.
   useEffect(() => {
-    const onScroll = () => document.documentElement.toggleAttribute("data-scrolled", window.scrollY > 4);
-    onScroll();
+    // One read per frame at most, so fast flings on 120 Hz screens stay smooth.
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      document.documentElement.toggleAttribute("data-scrolled", window.scrollY > 4);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {

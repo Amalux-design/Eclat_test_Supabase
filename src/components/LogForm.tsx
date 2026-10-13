@@ -4,6 +4,7 @@ import type { PaymentStatus, WorkLog, WorkLogInput, WorkStatus } from "../types"
 import { formatCurrency, isPastOrToday, joinWorks, parseWorks, todayISO } from "../utils/format";
 import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
+import { useSheet } from "../utils/useSheet";
 
 interface LogFormProps {
   initial?: WorkLog | null;
@@ -17,6 +18,7 @@ interface LogFormProps {
 const KNOWN_SERVICES = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 
 export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, onClose }: LogFormProps) {
+  const { closing, close, sheetRef, sheetHandlers } = useSheet(onClose);
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayISO());
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
@@ -117,14 +119,21 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       notes: notes.trim(),
       privateNotes: privateNotes.trim(),
     });
-    onClose();
+    close();
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet form-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={title}>
+    <div className={`modal-overlay ${closing ? "closing" : ""}`} onClick={close}>
+      <div
+        ref={sheetRef}
+        className="modal-sheet form-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label={title}
+        {...sheetHandlers}
+      >
         <div className="modal-header">
-          <button type="button" className="text-btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="text-btn" onClick={close}>Cancel</button>
           <h2 className="modal-title">{title}</h2>
           <button type="submit" form="booking-form" className="save-pill">Save</button>
         </div>

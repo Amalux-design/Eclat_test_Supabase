@@ -6,6 +6,7 @@ import { LogForm } from "../components/LogForm";
 import { formatCurrency, monthLabel, receivedOf } from "../utils/format";
 import { useConfirm } from "../components/ConfirmDialog";
 import { saveInvoice } from "../utils/invoice";
+import { Sheet } from "../components/Sheet";
 import { Loader } from "../components/Loader";
 import { FileDown } from "lucide-react";
 import type { WorkLog, WorkLogInput } from "../types";
@@ -173,14 +174,15 @@ export function PaymentsPage() {
       {selected && (() => {
         const received = receivedOf(selected);
         const balance = selected.amount - received;
-        const close = () => {
+        const reset = () => {
           setSelected(null);
           setPartialOpen(false);
           setPartialValue("");
         };
         return (
-          <div className="modal-overlay" onClick={close}>
-            <div className="modal-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Booking payment">
+          <Sheet label="Booking payment" onClose={reset}>
+            {(close) => (
+            <>
               <div className="modal-header">
                 <span />
                 <h2 className="modal-title">{selected.clientName || "Booking"}</h2>
@@ -267,8 +269,9 @@ export function PaymentsPage() {
                   Edit booking
                 </button>
               </div>
-            </div>
-          </div>
+            </>
+            )}
+          </Sheet>
         );
       })()}
 

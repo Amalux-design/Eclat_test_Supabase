@@ -23,7 +23,12 @@ export function BottomNav() {
     <nav className="bottom-nav" style={{ ["--tabs" as string]: items.length, ["--active" as string]: activeIndex }}>
       <span className="nav-indicator" aria-hidden="true" />
       {items.map(({ to, label, icon: Icon }) => (
-        <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+        <NavLink
+          key={to}
+          to={to}
+          end={to === "/"}
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+        >
           <Icon size={21} strokeWidth={1.5} />
           <span className="nav-label">{label}</span>
         </NavLink>

@@ -2914,3 +2914,204 @@ textarea.field-input {
 html {
   background: var(--cream);
 }
+
+/* ======================================================================
+   Motion pass: one easing family, transform/opacity only on hot paths,
+   so scrolling and gestures stay at the display's full refresh rate.
+   ====================================================================== */
+
+:root {
+  --ease-flow: cubic-bezier(0.32, 0.72, 0, 1); /* iOS sheet-like: quick start, soft landing */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* No 300 ms tap delay; double-tap zoom off on controls. */
+a,
+button,
+[role="button"],
+.calendar-cell,
+.chip,
+.nav-item {
+  touch-action: manipulation;
+}
+
+/* ---------- calendar: week rows, finger-tracked swipe, fold on scroll ---------- */
+
+.calendar-grid {
+  display: block;
+}
+
+.cal-week {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.5s var(--ease-flow), opacity 0.35s ease;
+}
+
+.cal-week-inner {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cal-track {
+  touch-action: pan-y;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.cal-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.5s var(--ease-flow), opacity 0.3s ease;
+}
+
+.cal-fold-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Pinned under the header; folds to the selected week while scrolled. */
+.calendar-card {
+  position: sticky;
+  top: calc(var(--header-h, 60px) + 8px);
+  z-index: 6;
+  transition: padding 0.5s var(--ease-flow), box-shadow 0.4s ease;
+}
+
+.calendar-card.is-compact {
+  padding-top: 12px;
+  padding-bottom: 10px;
+  box-shadow: 0 14px 34px rgba(70, 26, 28, 0.28);
+}
+
+.calendar-card.is-compact .cal-week:not(.is-focus),
+.calendar-card.is-compact .cal-fold {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.calendar-card .cal-title {
+  transform-origin: left center;
+  transition: transform 0.5s var(--ease-flow);
+}
+
+.calendar-card.is-compact .cal-title {
+  transform: scale(0.78);
+  cursor: pointer;
+}
+
+.calendar-card.is-compact .calendar-weekdays {
+  opacity: 0.8;
+}
+
+/* Selection ring grows in rather than snapping. */
+.calendar-num {
+  transition: background-color 0.3s var(--ease-flow), color 0.25s ease, transform 0.35s var(--ease-flow),
+    box-shadow 0.3s ease;
+}
+
+.calendar-cell.selected .calendar-num {
+  animation: date-pop 0.4s var(--ease-flow);
+}
+
+@keyframes date-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+}
+
+/* ---------- lists: skip off-screen work while scrolling ---------- */
+
+.day-group,
+.month-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
+/* ---------- sheets: slide in, slide out, drag to dismiss ---------- */
+
+.modal-sheet,
+.picker-sheet {
+  will-change: transform;
+  animation: sheet-in 0.48s var(--ease-flow);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.modal-overlay.closing {
+  animation: fade-out 0.28s ease forwards;
+}
+
+.modal-overlay.closing .modal-sheet {
+  animation: sheet-out 0.3s var(--ease-flow) forwards;
+}
+
+@keyframes sheet-out {
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.sheet-dragging {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Grabber area is the drag handle; give it a comfortable target. */
+.modal-sheet::before,
+.picker-sheet::before {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+/* ---------- expand / collapse: one consistent unfold ---------- */
+
+.reveal-field,
+.month-row-reveal {
+  transition: grid-template-rows 0.45s var(--ease-flow);
+}
+
+.reveal-field-inner,
+.month-row-reveal > .month-row-body {
+  transition: opacity 0.35s ease, transform 0.45s var(--ease-flow);
+}
+
+.reveal-field:not(.open) .reveal-field-inner {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-week,
+  .cal-fold,
+  .calendar-card,
+  .calendar-card .cal-title {
+    transition: none;
+  }
+}
+
+/* Tab change: the new page eases in (content only; header and the sliding
+   tab pill are untouched). */
+.page {
+  animation: page-in 0.38s var(--ease-out-soft);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
