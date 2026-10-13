@@ -89,7 +89,21 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       onAuthLost: lock,
       // Once everything is saved, pull the server's copy so the cache and
       // version match what assistants will see.
-      onSettled: () => void refetch().catch(() => {}),
+      // No full refetch after saving: the server's reply is merged in directly
+      // (onApplied), and the regular version poll picks up anything else.
+      onSettled: () => {},
+      onApplied: (op, saved) => {
+        setServerLogs((prev) => {
+          const next =
+            op.kind === "delete"
+              ? prev.filter((l) => l.id !== op.id)
+              : prev.some((l) => l.id === op.id)
+                ? prev.map((l) => (l.id === op.id ? (saved ?? op.log) : l))
+                : [saved ?? op.log, ...prev].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+          writeLogsCache(true, next, versionRef.current);
+          return next;
+        });
+      },
     });
     if (token) saveQueue.flushNow();
   }, [token, lock, refetch]);

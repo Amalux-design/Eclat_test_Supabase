@@ -36,6 +36,7 @@ class SaveQueue {
   private getToken: () => string | null = () => null;
   private onAuthLost: () => void = () => {};
   private onSettled: () => void = () => {};
+  private onApplied: (op: QueueOp, saved: WorkLog | null) => void = () => {};
   readonly ready: Promise<void>;
 
   constructor() {
@@ -48,7 +49,14 @@ class SaveQueue {
     window.addEventListener("online", () => this.flushNow());
   }
 
-  configure(opts: { getToken: () => string | null; onAuthLost: () => void; onSettled: () => void }) {
+  configure(opts: {
+    getToken: () => string | null;
+    onAuthLost: () => void;
+    onSettled: () => void;
+    /** Called with the server's copy before the pending op is dropped. */
+    onApplied: (op: QueueOp, saved: WorkLog | null) => void;
+  }) {
+    this.onApplied = opts.onApplied;
     this.getToken = opts.getToken;
     this.onAuthLost = opts.onAuthLost;
     this.onSettled = opts.onSettled;
@@ -100,8 +108,14 @@ class SaveQueue {
     this.inFlight = op;
     this.setState("syncing");
     try {
-      if (op.kind === "save") await api.saveLog(token, op.log);
+      let saved: WorkLog | null = null;
+      if (op.kind === "save") saved = await api.saveLog(token, op.log);
       else await api.deleteLog(token, op.id);
+      // Hand the confirmed copy to the list first, then drop the pending op,
+      // so the booking never disappears between the two.
+      this.onApplied(op, saved);
+      // Give React a moment to render the merged copy before the overlay goes.
+      await new Promise((r) => setTimeout(r, 60));
       this.finish(op);
     } catch (e) {
       this.inFlight = null;
