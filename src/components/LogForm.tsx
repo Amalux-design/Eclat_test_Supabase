@@ -18,7 +18,7 @@ interface LogFormProps {
 const KNOWN_SERVICES = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 
 export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, onClose }: LogFormProps) {
-  const { closing, close, sheetRef, sheetHandlers } = useSheet(onClose);
+  const { closing, close, sheetRef } = useSheet(onClose);
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayISO());
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
@@ -130,7 +130,6 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={title}
-        {...sheetHandlers}
       >
         <div className="modal-header">
           <button type="button" className="text-btn" onClick={close}>Cancel</button>

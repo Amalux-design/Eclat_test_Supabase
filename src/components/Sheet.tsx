@@ -8,9 +8,9 @@ interface SheetProps {
   children: (close: () => void) => ReactNode;
 }
 
-/** Bottom sheet with slide-out close and drag-down to dismiss. */
+/** Bottom sheet that slides away when closed. */
 export function Sheet({ label, onClose, children }: SheetProps) {
-  const { closing, close, sheetRef, sheetHandlers } = useSheet(onClose);
+  const { closing, close, sheetRef } = useSheet(onClose);
   return (
     <div className={`modal-overlay ${closing ? "closing" : ""}`} onClick={close}>
       <div
@@ -19,7 +19,6 @@ export function Sheet({ label, onClose, children }: SheetProps) {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={label}
-        {...sheetHandlers}
       >
         {children(close)}
       </div>

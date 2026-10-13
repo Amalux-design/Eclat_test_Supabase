@@ -2965,49 +2965,40 @@ button,
   backface-visibility: hidden;
 }
 
-.cal-fold {
-  display: grid;
-  grid-template-rows: 1fr;
-  transition: grid-template-rows 0.5s var(--ease-flow), opacity 0.3s ease;
-}
-
-.cal-fold-inner {
-  min-height: 0;
+/* Month change: the card's height eases to the new row count (set from
+   CalendarPage), and the title slides in from the swipe direction. */
+.calendar-card {
   overflow: hidden;
 }
 
-/* Pinned under the header; folds to the selected week while scrolled. */
-.calendar-card {
-  position: sticky;
-  top: calc(var(--header-h, 60px) + 8px);
-  z-index: 6;
-  transition: padding 0.5s var(--ease-flow), box-shadow 0.4s ease;
+.cal-title {
+  overflow: hidden;
 }
 
-.calendar-card.is-compact {
-  padding-top: 12px;
-  padding-bottom: 10px;
-  box-shadow: 0 14px 34px rgba(70, 26, 28, 0.28);
+.cal-title-text {
+  display: inline-block;
 }
 
-.calendar-card.is-compact .cal-week:not(.is-focus),
-.calendar-card.is-compact .cal-fold {
-  grid-template-rows: 0fr;
-  opacity: 0;
+.cal-title-text.from-next {
+  animation: title-from-next 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.calendar-card .cal-title {
-  transform-origin: left center;
-  transition: transform 0.5s var(--ease-flow);
+.cal-title-text.from-prev {
+  animation: title-from-prev 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.calendar-card.is-compact .cal-title {
-  transform: scale(0.78);
-  cursor: pointer;
+@keyframes title-from-next {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
 }
 
-.calendar-card.is-compact .calendar-weekdays {
-  opacity: 0.8;
+@keyframes title-from-prev {
+  from {
+    opacity: 0;
+    transform: translate3d(-28px, 0, 0);
+  }
 }
 
 /* Selection ring grows in rather than snapping. */
@@ -3065,18 +3056,6 @@ button,
   }
 }
 
-.sheet-dragging {
-  transition: none !important;
-  animation: none !important;
-}
-
-/* Grabber area is the drag handle; give it a comfortable target. */
-.modal-sheet::before,
-.picker-sheet::before {
-  margin-top: 8px;
-  margin-bottom: 4px;
-}
-
 /* ---------- expand / collapse: one consistent unfold ---------- */
 
 .reveal-field,
@@ -3095,11 +3074,8 @@ button,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cal-week,
-  .cal-fold,
-  .calendar-card,
-  .calendar-card .cal-title {
-    transition: none;
+  .cal-title-text {
+    animation: none;
   }
 }
 

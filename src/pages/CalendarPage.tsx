@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
 import { useAuth } from "../context/AuthContext";
@@ -23,7 +23,9 @@ export function CalendarPage() {
   const [adding, setAdding] = useState(false);
   const [converting, setConverting] = useState<WorkLog | null>(null);
   const [editing, setEditing] = useState<WorkLog | null>(null);
-  const [compact, setCompact] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const lastHeight = useRef(0);
+  const [titleDir, setTitleDir] = useState<"next" | "prev" | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const animating = useRef(false);
 
@@ -44,6 +46,7 @@ export function CalendarPage() {
   }, [monthLogs]);
 
   function shiftMonth(delta: number) {
+    setTitleDir(delta > 0 ? "next" : "prev");
     setYear((y) => new Date(y, month + delta, 1).getFullYear());
     setMonth((m) => new Date(year, m + delta, 1).getMonth());
   }
@@ -72,10 +75,11 @@ export function CalendarPage() {
           track.style.transition = `transform 0.42s ${EASE}, opacity 0.3s ease`;
           track.style.transform = "translate3d(0,0,0)";
           track.style.opacity = "1";
-          window.setTimeout(() => (animating.current = false), 420);
         })
       );
     }, 240);
+    // Unlock on a timer, not a frame callback, so a paused tab can't jam swipes.
+    window.setTimeout(() => (animating.current = false), 680);
   }
 
   // Month follows the finger. Vertical gestures stay native scroll
@@ -121,44 +125,34 @@ export function CalendarPage() {
     }
   }
 
-  // Fold the month to the selected week once the page scrolls; unfold at the
-  // top. A spacer below the agenda gives back exactly the height the fold
-  // removes, so the page never jumps or bounces between the two states.
-  const cardRef = useRef<HTMLDivElement>(null);
-  const fullHeight = useRef(0);
-  const [spacer, setSpacer] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      setCompact((was) => (was ? y > 4 : y > 36));
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
+  // When the month changes, the card resizes to the new number of week rows
+  // (4–6). Animate from the old height to the new one instead of jumping.
+  useLayoutEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-    const ro = new ResizeObserver(() => {
-      const h = card.offsetHeight;
-      if (!card.classList.contains("is-compact")) {
-        fullHeight.current = h;
-        setSpacer(0);
-      } else {
-        setSpacer(Math.max(0, fullHeight.current - h));
-      }
-    });
-    ro.observe(card);
-    return () => ro.disconnect();
-  }, []);
+    const from = lastHeight.current;
+    card.style.height = "";
+    const to = card.offsetHeight;
+    lastHeight.current = to;
+    if (!from || from === to || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    card.style.height = `${from}px`;
+    void card.offsetHeight; // commit the start height before transitioning
+    card.style.transition = "height 0.5s cubic-bezier(0.32, 0.72, 0, 1)";
+    card.style.height = `${to}px`;
+    const done = () => {
+      card.style.height = "";
+      card.style.transition = "";
+      card.removeEventListener("transitionend", done);
+    };
+    card.addEventListener("transitionend", done);
+    const fallback = window.setTimeout(done, 650);
+    return () => window.clearTimeout(fallback);
+  }, [year, month]);
 
-  function expand() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
 
   function goToToday() {
     const t = new Date();
+    setTitleDir(t.getFullYear() * 12 + t.getMonth() > year * 12 + month ? "next" : "prev");
     setYear(t.getFullYear());
     setMonth(t.getMonth());
     setSelectedDate(todayISO());
@@ -173,10 +167,12 @@ export function CalendarPage() {
     <div className="page">
       {error && <div className="inline-note">{error}</div>}
 
-      <div ref={cardRef} className={`calendar-card ${compact ? "is-compact" : ""}`}>
+      <div ref={cardRef} className="calendar-card">
       <div className="cal-head">
-        <h1 className="large-title cal-title" onClick={compact ? expand : undefined}>
-          {monthName} <span className="cal-year">{year}</span>
+        <h1 className="large-title cal-title" aria-live="polite">
+          <span key={`${year}-${month}`} className={`cal-title-text ${titleDir ? `from-${titleDir}` : ""}`}>
+            {monthName} <span className="cal-year">{year}</span>
+          </span>
         </h1>
         <div className="cal-head-actions">
           <button className="icon-btn" onClick={() => goToMonth(-1)} aria-label="Previous month">
@@ -187,7 +183,6 @@ export function CalendarPage() {
           </button>
         </div>
       </div>
-      <div className="cal-fold"><div className="cal-fold-inner">
       <div className="cal-sub">
         <p className="subtitle">
           {monthLogs.length === 0
@@ -198,7 +193,6 @@ export function CalendarPage() {
           <button className="today-btn" onClick={goToToday}>Today</button>
         )}
       </div>
-      </div></div>
 
         <div
           ref={trackRef}
@@ -210,12 +204,10 @@ export function CalendarPage() {
         >
           <CalendarGrid year={year} month={month} data={calendarData} selected={selectedDate} onSelectDate={setSelectedDate} />
         </div>
-        <div className="cal-fold"><div className="cal-fold-inner">
-          <div className="legend">
-            <span className="legend-item"><span className="dot reserved" /> Booked</span>
-            <span className="legend-item"><span className="dot worked" /> Done</span>
-          </div>
-        </div></div>
+        <div className="legend">
+          <span className="legend-item"><span className="dot reserved" /> Booked</span>
+          <span className="legend-item"><span className="dot worked" /> Done</span>
+        </div>
       </div>
 
       <section key={selectedDate} className="agenda" aria-live="polite">
@@ -251,8 +243,6 @@ export function CalendarPage() {
           </div>
         )}
       </section>
-
-      <div aria-hidden="true" style={{ height: spacer }} />
 
       {adding && (
         <LogForm
