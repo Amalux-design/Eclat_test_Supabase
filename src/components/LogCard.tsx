@@ -143,8 +143,7 @@ export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "pap
                     onEdit();
                   }}
                 >
-                  <PencilLine size={15} strokeWidth={1.7} />
-                  <span>Edit</span>
+                  <PencilLine size={16} strokeWidth={1.7} />
                 </button>
               )}
             </span>
