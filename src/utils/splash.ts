@@ -29,8 +29,12 @@ function handoff(): void {
 
   const a = from.getBoundingClientRect();
   const b = to.getBoundingClientRect();
-  const dx = b.left + b.width / 2 - (a.left + a.width / 2);
-  const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  // On wide screens the page is zoomed (see "laptop scale" in index.css).
+  // Positions come back in screen pixels, but a transform inside the zoomed
+  // page gets zoomed again, so convert back or the logo overshoots.
+  const zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
+  const dx = (b.left + b.width / 2 - (a.left + a.width / 2)) / zoom;
+  const dy = (b.top + b.height / 2 - (a.top + a.height / 2)) / zoom;
   const scale = b.height / a.height;
 
   // Freeze the logo in its finished state (no reveal/shimmer mid-flight).

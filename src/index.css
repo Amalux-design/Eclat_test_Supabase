@@ -4065,3 +4065,7 @@ button,
 @media (max-width: 1023px) {
   .masthead-actions { transform: translateY(-8px); }
 }
+
+/* Always keep room for the scrollbar, so a long day (page scrolls) and a
+   short one (no scroll) give the calendar exactly the same width. */
+html { scrollbar-gutter: stable; }
