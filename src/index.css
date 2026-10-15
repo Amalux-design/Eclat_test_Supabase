@@ -3953,3 +3953,26 @@ button,
 }
 .password-eye:hover, .password-eye[aria-pressed="true"] { opacity: 1; }
 .password-eye:active { background: rgba(0,0,0,.06); }
+
+/* ---------- laptop scale ----------
+   On wide screens the whole app scales up smoothly (like browser zoom), so a
+   laptop at 100% looks as it did at 125%: bigger type, less empty space.
+   Starts at 1280px wide, reaches 125% at 1600px and stays there. Heights in
+   vh/vw are divided by --z so full-screen panels still fit exactly. */
+:root { --z: 1; }
+@media (min-width: 1360px) { :root { --z: 1.0625; } }
+@media (min-width: 1440px) { :root { --z: 1.125; } }
+@media (min-width: 1520px) { :root { --z: 1.1875; } }
+@media (min-width: 1600px) { :root { --z: 1.25; } }
+
+@media (min-width: 1360px) {
+  body { zoom: var(--z); min-height: calc(100vh / var(--z)); }
+  .app-shell { min-height: calc(100vh / var(--z)); }
+  .gate { min-height: calc(100dvh / var(--z)); }
+  .calendar-page .agenda { max-height: calc(100vh / var(--z) - 64px); }
+  .modal-sheet, .picker-sheet { max-height: calc(100vh / var(--z) - 64px); }
+  .photo-viewer img {
+    max-width: min(calc(70vw / var(--z)), 1000px);
+    max-height: calc(80vh / var(--z));
+  }
+}
