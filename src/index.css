@@ -3997,11 +3997,21 @@ button,
 .search-pill.open .search-pill-icon .lens { opacity: 0; transform: rotate(90deg) scale(0.6); }
 .search-pill.open .search-pill-icon .cross { opacity: 1; transform: none; }
 
-/* ---------- swipe between tabs (phones) ---------- */
-[data-swipe="next"] .page { animation: swipe-in-next 0.34s var(--ease-out-soft); }
-[data-swipe="prev"] .page { animation: swipe-in-prev 0.34s var(--ease-out-soft); }
-@keyframes swipe-in-next { from { opacity: 0; transform: translate3d(36px, 0, 0); } }
-@keyframes swipe-in-prev { from { opacity: 0; transform: translate3d(-36px, 0, 0); } }
+/* ---------- swipe between tabs (phones) ----------
+   The old page slides off with the finger (set from JS); the new one slides in
+   from the far side. Transform only, no fade, so nothing flashes. */
+[data-swipe="next"] .page { animation: swipe-in-next 0.4s cubic-bezier(0.22, 0.8, 0.25, 1); }
+[data-swipe="prev"] .page { animation: swipe-in-prev 0.4s cubic-bezier(0.22, 0.8, 0.25, 1); }
+@keyframes swipe-in-next { from { transform: translate3d(100%, 0, 0); } }
+@keyframes swipe-in-prev { from { transform: translate3d(-100%, 0, 0); } }
+@media (max-width: 1023px) {
+  main { touch-action: pan-y; overflow-x: clip; }
+  /* Highlight follows the finger (--swipe), then settles on the new tab. */
+  .bottom-nav .nav-indicator {
+    transform: translateX(calc((var(--active) + var(--swipe, 0)) * var(--tab-w)));
+  }
+  .bottom-nav.dragging .nav-indicator { transition: none; }
+}
 @media (prefers-reduced-motion: reduce) {
-  [data-swipe] .page { animation: page-in 0.2s ease; }
+  [data-swipe] .page { animation: none; }
 }
