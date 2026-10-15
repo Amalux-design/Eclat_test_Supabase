@@ -4059,3 +4059,9 @@ button,
 /* Playfair's default numbers dip below the line (old-style). Titles and
    amounts use straight, even-width numbers so prices and dates read cleanly. */
 :where(*) { font-variant-numeric: lining-nums tabular-nums; }
+
+/* The logo's "by Harsha" hangs below ÉCLAT, so centring on the whole logo
+   sits the icon low. Lift it to the middle of the ÉCLAT letters (phones). */
+@media (max-width: 1023px) {
+  .masthead-actions { transform: translateY(-8px); }
+}

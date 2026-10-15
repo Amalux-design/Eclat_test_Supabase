@@ -63,7 +63,7 @@ export function AppHeader() {
           </span>
         )}
         <button className="masthead-btn" onClick={() => setAccountOpen(true)} aria-label="Account and team">
-          <KeyRound size={24} strokeWidth={1.5} />
+          <KeyRound size={21} strokeWidth={1.6} />
         </button>
       </div>
       {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
