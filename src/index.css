@@ -3555,3 +3555,15 @@ button,
     animation: none;
   }
 }
+
+.gate .text-btn {
+  font-size: 15px;
+}
+
+.gate-quiet {
+  color: var(--ink-2) !important;
+}
+
+.gate .field-input + .field-input {
+  margin-top: -2px;
+}

@@ -22,29 +22,27 @@ Plus a private storage bucket `reference-photos`, live updates, and the
 `save_booking` function (saves a booking and its private details together,
 with a check that stops one device silently overwriting another's edit).
 
-## 2. Email sign-in with a 6-digit code
+## 2. Turn off email confirmation (password sign-in)
 
-Supabase → **Authentication**:
+People sign in with **email + password**; no emails are sent, so Supabase's
+free-plan email limits don't matter.
 
-1. **Sign In / Providers → Email**: make sure Email is **enabled**. Leave
-   "Confirm email" on.
-2. **Emails → Templates → Magic Link**: replace the body with:
+Supabase → **Authentication** → **Sign In / Providers** → **Email**:
 
-   ```html
-   <h2>Your Éclat sign-in code</h2>
-   <p>Enter this code in the app:</p>
-   <p style="font-size:28px;letter-spacing:6px"><strong>{{ .Token }}</strong></p>
-   <p>It expires in 1 hour. If you didn't ask for it, ignore this email.</p>
-   ```
+1. **Enable Email provider**: on.
+2. **Confirm email**: **off**. (Otherwise Supabase tries to send a
+   confirmation email when someone creates their password.)
+3. Save.
 
-   Do the same for the **Confirm signup** template (first-time sign-ins use it).
-3. **URL Configuration → Site URL**: set it to the app's address once it's on
-   Vercel (e.g. `https://eclat-xxxx.vercel.app`).
+Only emails Harsha has added (Account → Team access) can create a password.
+Anyone else gets "This email isn't on the Éclat team yet".
 
-**Email limits:** Supabase's built-in email sender only allows a few emails
-per hour, which is fine for a small team that signs in once per phone. If
-codes stop arriving, set up free custom SMTP (e.g. Resend) under
-**Authentication → Emails → SMTP Settings**.
+### Forgot password
+
+Supabase → **Authentication → Users** → find the person → **⋯** → **Send
+password recovery** won't work without email setup, so instead:
+**⋯ → Edit user** (or "Update user") → set a new password → Save. Tell them
+the new password; they can change it in the app (Account → Change password).
 
 ## 3. Move the existing bookings (optional)
 
@@ -84,8 +82,9 @@ key in the app, `.env`, Vercel or chat.
 
 ## How access works
 
-- Everyone signs in with their email and a 6-digit code; the phone then stays
-  signed in.
+- Everyone signs in with their email and a password; the phone then stays
+  signed in. First time: "First time? Create password" (only for emails
+  Harsha has added).
 - **Owner**: everything, plus **Account → Team access** to add people (name,
   email, Team or Admin), switch roles, and remove or restore access.
 - **Admin**: everything except managing the team.

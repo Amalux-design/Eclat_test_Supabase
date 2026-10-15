@@ -16,7 +16,9 @@ const ROLE_HINT: Record<Role, string> = {
 
 /** Account details, sign out, and (for the owner) team access. */
 export function AccountSheet({ onClose }: { onClose: () => void }) {
-  const { email, name, role, isOwner, signOut } = useAuth();
+  const { email, name, role, isOwner, signOut, changePassword } = useAuth();
+  const [pwOpen, setPwOpen] = useState(false);
+  const [newPw, setNewPw] = useState("");
   const confirm = useConfirm();
   const notify = useNotice();
   const [members, setMembers] = useState<Member[] | null>(null);
@@ -46,7 +48,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       await api.saveMember({ ...draft, active: true });
-      notify(`${draft.name || draft.email} can now sign in with ${draft.email.trim().toLowerCase()}.`);
+      notify(`Added. Ask ${draft.name || "them"} to open the app, tap "First time? Create password" and use ${draft.email.trim().toLowerCase()}.`);
       setDraft({ email: "", name: "", role: "team" });
       setAdding(false);
       await load();
@@ -105,6 +107,47 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                 {email} · {role ? ROLE_LABEL[role] : ""}
               </p>
             </div>
+
+            {!pwOpen ? (
+              <button className="ghost-btn full" onClick={() => setPwOpen(true)}>
+                Change password
+              </button>
+            ) : (
+              <form
+                className="group team-add"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (newPw.length < 8) {
+                    notify("Choose a password of at least 8 characters.", "error");
+                    return;
+                  }
+                  try {
+                    await changePassword(newPw);
+                    notify("Password changed.");
+                    setNewPw("");
+                    setPwOpen(false);
+                  } catch (err) {
+                    notify(err instanceof Error ? err.message : "Couldn't change the password.", "error");
+                  }
+                }}
+              >
+                <input
+                  className="field-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="New password (8+ characters)"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  aria-label="New password"
+                />
+                <div className="team-add-actions">
+                  <button type="button" className="text-btn" onClick={() => setPwOpen(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="save-pill">Save</button>
+                </div>
+              </form>
+            )}
 
             {isOwner && (
               <section className="team">

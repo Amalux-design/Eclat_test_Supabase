@@ -45,6 +45,20 @@ language sql stable as $$ select public.app_role() in ('owner', 'admin') $$;
 create or replace function public.is_owner() returns boolean
 language sql stable as $$ select public.app_role() = 'owner' $$;
 
+-- Lets the sign-in screen check, before someone creates a password, that
+-- Harsha has added their email. Only answers yes/no for that exact email.
+create or replace function public.is_invited(p_email text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.members where email = lower(trim(p_email)) and active)
+$$;
+
+grant execute on function public.is_invited(text) to anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Bookings: the details the whole team may see.
 -- ---------------------------------------------------------------------------
@@ -284,5 +298,5 @@ grant execute on function public.save_booking(jsonb, jsonb, timestamptz) to auth
 -- Add more people later from the app (Account → Team).
 -- ---------------------------------------------------------------------------
 insert into public.members (email, name, role)
-values (lower('owner@example.com'), 'Harsha', 'owner')
+values (lower('heyamalux@gmail.com.com'), 'Harsha', 'owner')
 on conflict (email) do update set role = 'owner', active = true;

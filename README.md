@@ -8,7 +8,7 @@ the app is React + TypeScript (Vite), installable on Android and iPhone.
 ## Setup
 
 See [`supabase/README.md`](./supabase/README.md): run `supabase/schema.sql`,
-switch on email codes, optionally import the old Google Sheet, then:
+turn off "Confirm email", optionally import the old Google Sheet, then:
 
 ```bash
 npm install
@@ -19,7 +19,8 @@ npm run dev
 
 ## Access
 
-Everyone signs in with email + a 6-digit code. Roles: **Owner** (everything +
+Everyone signs in with email + password (first time: create password, only
+for emails the owner has added). Roles: **Owner** (everything +
 team management), **Admin** (everything), **Team** (schedule, notes, photos;
 no contacts or money). Enforced by database row-level security.
 

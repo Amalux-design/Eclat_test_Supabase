@@ -6,7 +6,7 @@ import { api } from "../api/client";
 import { clearAdminCache } from "../utils/localCache";
 import type { Role } from "../types";
 
-// Everyone signs in with their email and a 6-digit code. What they can see
+// Everyone signs in with their email and a password. What they can see
 // comes from the members table (owner / admin / team), checked by the
 // database on every request — so removing someone takes effect immediately.
 
@@ -19,8 +19,10 @@ interface AuthContextValue {
   role: Role | null;
   isAdmin: boolean; // owner or admin: sees contacts, money, edits
   isOwner: boolean; // can manage the team
-  sendCode: (email: string) => Promise<void>;
-  verifyCode: (email: string, code: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  /** First time only: create a password for an email Harsha has added. */
+  createAccount: (email: string, password: string) => Promise<void>;
+  changePassword: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Re-check access, e.g. after the database refuses a request. */
   recheck: () => Promise<void>;
@@ -62,20 +64,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, [resolve]);
 
-  const sendCode = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: true },
-    });
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     if (error) {
-      if (/rate limit|too many/i.test(error.message)) throw new Error("Too many codes requested. Please wait a few minutes and try again.");
-      throw new Error("Couldn't send the code. Check the email address and your connection.");
+      if (/invalid login credentials/i.test(error.message))
+        throw new Error("Email or password is wrong. First time here? Tap \"Create password\".");
+      if (/email not confirmed/i.test(error.message))
+        throw new Error("This account isn't confirmed yet. Ask Harsha to turn off \"Confirm email\" in Supabase.");
+      throw new Error("Couldn't sign in. Check your connection and try again.");
     }
   }, []);
 
-  const verifyCode = useCallback(async (email: string, code: string) => {
-    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code, type: "email" });
-    if (error) throw new Error("That code didn't work. Check it, or request a new one.");
+  const createAccount = useCallback(async (email: string, password: string) => {
+    const clean = email.trim().toLowerCase();
+    const { data: invited, error: checkError } = await supabase.rpc("is_invited", { p_email: clean });
+    if (checkError) throw new Error("Couldn't check the email. Check your connection and try again.");
+    if (!invited) throw new Error("This email isn't on the Éclat team yet. Ask Harsha to add it first.");
+    const { data, error } = await supabase.auth.signUp({ email: clean, password });
+    if (error) {
+      if (/already registered|already exists/i.test(error.message))
+        throw new Error("This email already has a password. Use Sign in instead.");
+      if (/password/i.test(error.message)) throw new Error("Choose a longer password (at least 8 characters).");
+      throw new Error("Couldn't create the password. Check your connection and try again.");
+    }
+    if (!data.session)
+      throw new Error("Password created, but Supabase is waiting for email confirmation. Ask Harsha to turn off \"Confirm email\".");
+  }, []);
+
+  const changePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw new Error("Couldn't change the password. Try again.");
   }, []);
 
   const signOut = useCallback(async () => {
@@ -96,12 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       isAdmin: role === "owner" || role === "admin",
       isOwner: role === "owner",
-      sendCode,
-      verifyCode,
+      signIn,
+      createAccount,
+      changePassword,
       signOut,
       recheck,
     }),
-    [status, session, name, role, sendCode, verifyCode, signOut, recheck]
+    [status, session, name, role, signIn, createAccount, changePassword, signOut, recheck]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
