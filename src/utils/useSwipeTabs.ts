@@ -17,10 +17,19 @@ export function useSwipeTabs(main: React.RefObject<HTMLElement | null>, paths: s
   const state = useRef({ pathname, paths });
   state.current = { pathname, paths };
 
+  // Which entrance the next page plays. Set once per navigation, before the
+  // new page paints, and never removed mid-animation: changing it later would
+  // restart the page's animation and make it flash.
+  const pending = useRef<"next" | "prev" | null>(null);
+
   // New tab is on screen: hand the highlight back to --active before paint.
   useLayoutEffect(() => {
     const nav = document.querySelector<HTMLElement>(".bottom-nav");
     nav?.style.setProperty("--swipe", "0");
+    const root = document.documentElement;
+    if (pending.current) root.dataset.swipe = pending.current;
+    else delete root.dataset.swipe;
+    pending.current = null;
   }, [pathname]);
 
   useEffect(() => {
@@ -87,13 +96,10 @@ export function useSwipeTabs(main: React.RefObject<HTMLElement | null>, paths: s
         page.style.transform = `translate3d(${dir * w}px,0,0)`;
         n?.style.setProperty("--swipe", String(-dir));
         window.setTimeout(() => {
-          document.documentElement.dataset.swipe = dir < 0 ? "next" : "prev";
+          pending.current = dir < 0 ? "next" : "prev";
           navigate(target);
           window.scrollTo(0, 0);
-          window.setTimeout(() => {
-            delete document.documentElement.dataset.swipe;
-            busy = false;
-          }, 420);
+          window.setTimeout(() => (busy = false), 420);
         }, 230);
       } else {
         page.style.transition = "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)";
