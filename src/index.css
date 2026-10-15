@@ -3976,3 +3976,25 @@ button,
     max-height: calc(80vh / var(--z));
   }
 }
+
+/* ---------- booking actions: never spill out of the card ----------
+   The action row measures its own width. When it drops onto its own line
+   (phones), it spans the card: small round actions on the left, Edit pinned
+   right. If even that is too tight, Edit becomes a round icon like the rest. */
+.booking-admin { container-type: inline-size; }
+
+@container (max-width: 420px) {
+  .booking-admin-actions {
+    flex-basis: 100%;
+    margin: 6px 0 0;
+    gap: 8px;
+  }
+  .booking-admin-actions .edit-pill { margin-left: auto; }
+}
+
+@container (max-width: 250px) {
+  .booking-admin-actions { gap: 6px; }
+  .booking-admin-actions .round-btn { width: 38px; height: 38px; }
+  .round-btn.edit-pill { width: 38px; padding: 0; justify-content: center; }
+  .round-btn.edit-pill span { display: none; }
+}
