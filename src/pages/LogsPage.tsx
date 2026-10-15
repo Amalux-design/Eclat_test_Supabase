@@ -165,7 +165,7 @@ export function LogsPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page bookings-page">
       <div className="page-head">
         <h1 className="page-title">Bookings</h1>
       </div>

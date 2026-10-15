@@ -78,7 +78,7 @@ export function PaymentsPage() {
   const paidShare = totals.total ? Math.round((totals.paid / totals.total) * 100) : 0;
 
   return (
-    <div className="page">
+    <div className="page earnings-page">
       <div className="page-head">
         <h1 className="page-title">Earnings</h1>
       </div>

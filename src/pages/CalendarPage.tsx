@@ -164,7 +164,7 @@ export function CalendarPage() {
   const booked = monthLogs.filter((l) => l.status === "RESERVED").length;
 
   return (
-    <div className="page">
+    <div className="page calendar-page">
       {error && <div className="inline-note">{error}</div>}
 
       <div ref={cardRef} className="calendar-card">
