@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, Minus, Plus } from "lucide-react";
 import type { PaymentStatus, WorkLog, WorkLogInput, WorkStatus } from "../types";
-import { formatCurrency, isPastOrToday, joinWorks, parseWorks, todayISO } from "../utils/format";
+import { formatCurrency, isPastOrToday, isValidPhone, joinWorks, normalizePhone, parseWorks, todayISO } from "../utils/format";
 import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
 import { useSheet } from "../utils/useSheet";
@@ -90,8 +90,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     onSubmit({
       date,
       clientName: clientName.trim(),
-      clientPhone: clientPhone.trim(),
-      altPhone: altPhone.trim(),
+      clientPhone: normalizePhone(clientPhone),
+      altPhone: normalizePhone(altPhone),
       work: workValue,
       eventType,
       location: location.trim(),
@@ -138,11 +138,13 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
             <div className="field-row">
               <div>
                 <label className="field-label" htmlFor="f-phone">Contact number</label>
-                <input id="f-phone" type="tel" className="field-input" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="+91" />
+                <input id="f-phone" type="tel" inputMode="tel" autoComplete="tel-national" className="field-input" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="10-digit mobile" />
+                {!isValidPhone(clientPhone) && <p className="field-hint warn">Not a 10-digit mobile. It will be saved as typed.</p>}
               </div>
               <div>
                 <label className="field-label" htmlFor="f-alt">Alternative number</label>
-                <input id="f-alt" type="tel" className="field-input" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} placeholder="Optional" />
+                <input id="f-alt" type="tel" inputMode="tel" autoComplete="tel-national" className="field-input" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} placeholder="Optional" />
+                {!isValidPhone(altPhone) && <p className="field-hint warn">Not a 10-digit mobile. It will be saved as typed.</p>}
               </div>
             </div>
           </fieldset>

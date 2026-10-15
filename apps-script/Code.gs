@@ -356,8 +356,11 @@ function createLog(input) {
   log.id = input.id || Utilities.getUuid();
   log.createdAt = now;
   log.updatedAt = now;
-  sheet.appendRow(objectToRow(log));
-  forceTextFormat(sheet, sheet.getLastRow());
+  // Mark the new row's phone/date/time cells as text BEFORE writing, so
+  // Sheets stores exactly what the app sends (no number/date conversion).
+  var rowIndex = sheet.getLastRow() + 1;
+  forceTextFormat(sheet, rowIndex);
+  sheet.getRange(rowIndex, 1, 1, HEADERS.length).setValues([objectToRow(log)]);
   markChanged();
   return log;
 }
@@ -373,8 +376,8 @@ function updateLog(input) {
   updated.createdAt = existing.createdAt;
   updated.updatedAt = new Date().toISOString();
 
-  sheet.getRange(rowIndex, 1, 1, HEADERS.length).setValues([objectToRow(updated)]);
   forceTextFormat(sheet, rowIndex);
+  sheet.getRange(rowIndex, 1, 1, HEADERS.length).setValues([objectToRow(updated)]);
   markChanged();
   return updated;
 }
@@ -388,4 +391,20 @@ function deleteLog(input) {
     markChanged();
   }
   return { id: input.id };
+}
+
+/**
+ * Run once by hand (Apps Script editor → select repairTextColumns → Run).
+ * Formats the whole phone/date/time columns as plain text, including empty
+ * rows below the data, so numbers typed straight into the Sheet stay exactly
+ * as typed. It does not change any existing values. (A leading 0 or + that
+ * Sheets already removed in the past can't be restored automatically, but
+ * the app still dials 10-digit mobiles correctly as +91.)
+ */
+function repairTextColumns() {
+  var sheet = getSheet();
+  var rows = Math.max(sheet.getMaxRows() - 1, 1);
+  TEXT_COLUMNS.forEach(function (key) {
+    sheet.getRange(2, HEADERS.indexOf(key) + 1, rows, 1).setNumberFormat("@");
+  });
 }

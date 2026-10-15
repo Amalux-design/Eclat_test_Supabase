@@ -104,8 +104,31 @@ export function isMapLink(location: string): boolean {
   return /^https?:\/\//i.test(location.trim());
 }
 
+/**
+ * Clients are always Indian mobiles. Reduce anything typed to the plain 10
+ * digits ("+91 99476 12345", "09947612345", "99476-12345" → "9947612345").
+ * If it doesn't reduce cleanly to 10 digits, keep exactly what was typed so
+ * nothing is ever thrown away.
+ */
+export function normalizePhone(raw: string): string {
+  const typed = String(raw ?? "").trim();
+  if (!typed) return "";
+  let digits = typed.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits.length === 10 ? digits : typed;
+}
+
+export function isValidPhone(raw: string): boolean {
+  const n = normalizePhone(raw);
+  return !n || /^\d{10}$/.test(n);
+}
+
+/** Always dial as +91 so the call connects (also fixes older "91…" rows). */
 export function telHref(phone: string): string {
-  return `tel:${phone.replace(/[^\d+]/g, "")}`;
+  const n = normalizePhone(phone);
+  if (/^\d{10}$/.test(n)) return `tel:+91${n}`;
+  return `tel:${String(phone).replace(/[^\d+]/g, "")}`;
 }
 
 /** Money received for a booking: the full amount once paid, else part-payments. */

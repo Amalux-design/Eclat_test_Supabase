@@ -3205,3 +3205,8 @@ button,
     transition: none;
   }
 }
+
+.field-hint.warn {
+  margin: 6px 4px 0;
+  color: var(--due);
+}
