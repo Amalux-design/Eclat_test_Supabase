@@ -71,7 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Email or password is wrong. First time here? Tap \"Create password\".");
       if (/email not confirmed/i.test(error.message))
         throw new Error("This account isn't confirmed yet. Ask Harsha to turn off \"Confirm email\" in Supabase.");
-      throw new Error("Couldn't sign in. Check your connection and try again.");
+      if (/invalid api key|no api key/i.test(error.message))
+        throw new Error("The app's Supabase key is wrong. Check VITE_SUPABASE_ANON_KEY in Vercel, then redeploy.");
+      throw new Error(`Couldn't sign in (${error.message}). Check your connection and try again.`);
     }
   }, []);
 

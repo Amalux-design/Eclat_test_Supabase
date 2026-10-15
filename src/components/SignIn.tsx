@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PasswordInput } from "./PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { Wordmark } from "./Wordmark";
 
@@ -86,9 +87,7 @@ export function SignIn() {
           onChange={(e) => setEmail(e.target.value)}
           aria-label="Email"
         />
-        <input
-          className="field-input"
-          type="password"
+        <PasswordInput
           autoComplete={creating ? "new-password" : "current-password"}
           placeholder={creating ? "New password (8+ characters)" : "Password"}
           value={password}
@@ -96,9 +95,7 @@ export function SignIn() {
           aria-label="Password"
         />
         {creating && (
-          <input
-            className="field-input"
-            type="password"
+          <PasswordInput
             autoComplete="new-password"
             placeholder="Repeat password"
             value={confirmPw}

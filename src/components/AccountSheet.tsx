@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Sheet } from "./Sheet";
+import { PasswordInput } from "./PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { useConfirm } from "./ConfirmDialog";
 import { useNotice } from "./Notice";
@@ -131,9 +132,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                   }
                 }}
               >
-                <input
-                  className="field-input"
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   placeholder="New password (8+ characters)"
                   value={newPw}

@@ -3941,3 +3941,15 @@ button,
     max-height: 80vh;
   }
 }
+
+/* ---------- password field with show/hide eye ---------- */
+.password-field { position: relative; }
+.password-field .field-input { width: 100%; padding-right: 48px; }
+.password-eye {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  width: 38px; height: 38px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--text-muted, currentColor); opacity: .7; display: grid; place-items: center;
+  cursor: pointer; transition: opacity .2s, background .2s;
+}
+.password-eye:hover, .password-eye[aria-pressed="true"] { opacity: 1; }
+.password-eye:active { background: rgba(0,0,0,.06); }
