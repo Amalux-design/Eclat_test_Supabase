@@ -3210,3 +3210,348 @@ button,
   margin: 6px 4px 0;
   color: var(--due);
 }
+
+/* ======================================================================
+   Supabase build: sign-in, notices, reference photos, team access
+   ====================================================================== */
+
+/* ---------- sign-in / no-access ---------- */
+
+.gate {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+  background: var(--cream);
+  animation: page-in 0.4s var(--ease-out-soft);
+}
+
+.gate .logo-lg {
+  height: 72px;
+}
+
+.gate-form {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.gate-title {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 30px;
+  margin: 0;
+}
+
+.gate-text {
+  color: var(--ink-2);
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.gate-code {
+  text-align: center;
+  font-size: 26px;
+  letter-spacing: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.gate-message {
+  color: var(--due);
+  font-size: 14px;
+}
+
+.gate .primary-btn {
+  margin-top: 4px;
+}
+
+.gate .primary-btn:disabled {
+  opacity: 0.5;
+}
+
+/* ---------- notices (toast) ---------- */
+
+.notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 84px);
+  z-index: 95;
+  width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: rgba(70, 26, 28, 0.94);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  color: var(--on-dark);
+  font-size: 15px;
+  line-height: 1.4;
+  box-shadow: 0 12px 30px rgba(30, 12, 10, 0.28);
+  animation: notice-in 0.4s var(--ease-flow);
+  cursor: pointer;
+}
+
+.notice-error {
+  background: rgba(120, 30, 22, 0.95);
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+}
+
+/* ---------- reference photos ---------- */
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.photo-tile,
+.photo-add {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.photo-tile img,
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-tile.is-new {
+  box-shadow: inset 0 0 0 2px var(--gilt-soft);
+}
+
+.photo-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(30, 12, 10, 0.6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.photo-add {
+  border: 1.5px dashed rgba(66, 12, 21, 0.3);
+  color: var(--oxblood);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.photo-loading {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(100deg, rgba(158, 118, 80, 0.08) 30%, rgba(158, 118, 80, 0.18) 50%, rgba(158, 118, 80, 0.08) 70%);
+  background-size: 300% 100%;
+  animation: logo-shimmer 1.4s ease-in-out infinite;
+}
+
+.photo-strip {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.photo-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.photo-thumb {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(158, 118, 80, 0.12);
+}
+
+.booking-wine .photo-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: grid;
+  place-items: center;
+  padding: calc(56px + var(--safe-top)) 12px calc(40px + var(--safe-bottom));
+  background: rgba(20, 8, 8, 0.94);
+  animation: fade 0.25s ease-out;
+}
+
+.photo-viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  animation: settle-in 0.35s var(--ease-flow);
+}
+
+.photo-loading.big {
+  width: 60vw;
+  height: 60vw;
+  max-width: 320px;
+  max-height: 320px;
+  border-radius: 16px;
+}
+
+.photo-viewer-close {
+  position: absolute;
+  top: calc(10px + var(--safe-top));
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.photo-viewer-count {
+  position: absolute;
+  bottom: calc(14px + var(--safe-bottom));
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+/* ---------- account & team ---------- */
+
+.account-card {
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.account-name {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.account-meta {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.team-add {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.team-add .field-input {
+  background: var(--cream);
+}
+
+.team-add .segmented {
+  margin-top: 0;
+}
+
+.team-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px 12px 16px;
+}
+
+.member.inactive .member-info {
+  opacity: 0.45;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-email {
+  font-size: 13px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+}
+
+.member-role {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--fill);
+  border-radius: 999px;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.member-toggle {
+  font-size: 15px;
+}
+
+.member-toggle.danger {
+  color: #c0392b;
+}
+
+.team + .ghost-btn,
+.account-card + .ghost-btn {
+  margin-top: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice,
+  .photo-viewer img,
+  .photo-loading {
+    animation: none;
+  }
+}

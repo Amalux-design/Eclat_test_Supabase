@@ -7,16 +7,17 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LogsPage } from "./pages/LogsPage";
 import { CalendarPage } from "./pages/CalendarPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
-import { USING_MOCK } from "./api/client";
 import { ConfirmProvider } from "./components/ConfirmDialog";
 import { BusyOverlay } from "./components/Loader";
 import { InstallHint } from "./components/InstallHint";
+import { NoticeProvider } from "./components/Notice";
+import { NoAccess, SignIn } from "./components/SignIn";
 import { useEffect } from "react";
 import { useLogs } from "./context/LogsContext";
 import { hideSplash } from "./utils/splash";
 
 // Lifts the splash only when the app is truly ready: fresh bookings from the
-// sheet (now cached on the device) and fonts loaded. Capped at 8 s so a slow
+// database (now cached on the device) and fonts loaded. Capped at 8 s so a slow
 // or offline start opens on the cached copy instead of waiting forever.
 function SplashGate() {
   const { settled } = useLogs();
@@ -50,26 +51,37 @@ function AppRoutes() {
   );
 }
 
+/** Signed-out and removed people see only the sign-in / no-access screens. */
+function Shell() {
+  const { status } = useAuth();
+  if (status === "signed-out") return <SignIn />;
+  if (status === "no-access") return <NoAccess />;
+  return (
+    <div className="app-shell">
+      <AppHeader />
+      <main>
+        <AppRoutes />
+      </main>
+      <BottomNav />
+      <InstallHint />
+    </div>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <ConfirmProvider>
+        <NoticeProvider>
         <LogsProvider>
           <HashRouter>
             <SplashGate />
             <BusyOverlay />
-            <div className="app-shell">
-              {USING_MOCK && <div className="mock-banner">Demo mode with sample bookings. No sheet connected.</div>}
-              <AppHeader />
-              <main>
-                <AppRoutes />
-              </main>
-              <BottomNav />
-              <InstallHint />
-            </div>
+            <Shell />
           </HashRouter>
         </LogsProvider>
+        </NoticeProvider>
         </ConfirmProvider>
       </AuthProvider>
     </ErrorBoundary>

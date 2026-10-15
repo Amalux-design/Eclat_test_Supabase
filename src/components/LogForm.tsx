@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, Minus, Plus } from "lucide-react";
-import type { PaymentStatus, WorkLog, WorkLogInput, WorkStatus } from "../types";
+import type { BookingPhoto, PaymentStatus, PhotoChanges, WorkLog, WorkLogInput, WorkStatus } from "../types";
 import { formatCurrency, isPastOrToday, isValidPhone, joinWorks, normalizePhone, parseWorks, todayISO } from "../utils/format";
 import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
 import { useSheet } from "../utils/useSheet";
+import { PhotoPicker } from "./Photos";
 
 interface LogFormProps {
   initial?: WorkLog | null;
   defaultDate?: string;
   forceStatus?: WorkStatus;
   title: string;
-  onSubmit: (input: WorkLogInput) => void;
+  /** Resolves once the server confirms; rejects to keep the form open. */
+  onSubmit: (input: WorkLogInput, photos: PhotoChanges) => Promise<void>;
   onClose: () => void;
 }
 
@@ -40,6 +42,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [paidSoFar, setPaidSoFar] = useState(initial?.paidAmount ? String(initial.paidAmount) : "");
   const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
+  const [removedPhotos, setRemovedPhotos] = useState<BookingPhoto[]>([]);
 
   const customServices = selectedWorks.filter((w) => !KNOWN_SERVICES.has(w));
 
@@ -71,7 +76,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const autoStatus: WorkStatus = isPastOrToday(date) ? "WORKED" : "RESERVED";
   const effectiveStatus = forceStatus ?? statusOverride ?? autoStatus;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -87,7 +92,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     const received = Math.min(Number(paidSoFar) || 0, amountNum);
     const fullyPaid = paymentStatus === "PAID" || (amountNum > 0 && received >= amountNum);
     const qty = initial?.qty && initial.qty > 1 ? initial.qty : 1;
-    onSubmit({
+    if (submitting) return;
+    setSubmitting(true);
+    const input: WorkLogInput = {
       date,
       clientName: clientName.trim(),
       clientPhone: normalizePhone(clientPhone),
@@ -108,8 +115,16 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       referrerName: own ? "" : referrerName.trim(),
       notes: notes.trim(),
       privateNotes: privateNotes.trim(),
-    });
-    close();
+    };
+    try {
+      await onSubmit(input, { add: newPhotos, remove: removedPhotos });
+      close();
+    } catch (err) {
+      // Nothing is lost: the form stays open with everything still filled in.
+      setError(err instanceof Error ? err.message : "Couldn't save. Check your connection and try again.");
+      setSubmitting(false);
+      document.querySelector(".form-sheet")?.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   return (
@@ -124,7 +139,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
         <div className="modal-header">
           <button type="button" className="text-btn" onClick={close}>Cancel</button>
           <h2 className="modal-title">{title}</h2>
-          <button type="submit" form="booking-form" className="save-pill">Save</button>
+          <button type="submit" form="booking-form" className="save-pill" disabled={submitting}>
+            {submitting ? "Saving…" : "Save"}
+          </button>
         </div>
 
         <form id="booking-form" onSubmit={handleSubmit} className="modal-body">
@@ -342,6 +359,18 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
             />
           </fieldset>
 
+          <fieldset className="form-section">
+            <legend>Reference photos</legend>
+            <p className="field-hint">Shared with the team. Removed automatically 2 months after the work date.</p>
+            <PhotoPicker
+              existing={(initial?.photos ?? []).filter((p) => !removedPhotos.some((r) => r.id === p.id))}
+              added={newPhotos}
+              onAdd={(files) => setNewPhotos((prev) => [...prev, ...files])}
+              onRemoveExisting={(photo) => setRemovedPhotos((prev) => [...prev, photo])}
+              onRemoveAdded={(i) => setNewPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+            />
+          </fieldset>
+
           <fieldset className="form-section private-section">
             <legend>Notes for me</legend>
             <p className="field-hint">
@@ -357,7 +386,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
             />
           </fieldset>
 
-          <button type="submit" className="primary-btn">Save booking</button>
+          <button type="submit" className="primary-btn" disabled={submitting}>
+            {submitting ? "Saving…" : "Save booking"}
+          </button>
         </form>
       </div>
     </div>

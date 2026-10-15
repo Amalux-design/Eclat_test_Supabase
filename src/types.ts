@@ -23,11 +23,34 @@ export interface WorkLog {
   notes: string; // shared with assistants
   privateNotes: string; // "Notes for me" — admin only, never sent to view-only devices
   paidAmount: number; // received so far; full amount once paymentStatus is PAID
+  photos: BookingPhoto[]; // reference photos, removed 2 months after the work date
   createdAt: string;
   updatedAt: string;
 }
 
-export type WorkLogInput = Omit<WorkLog, "id" | "createdAt" | "updatedAt">;
+export type WorkLogInput = Omit<WorkLog, "id" | "createdAt" | "updatedAt" | "photos">;
+
+export interface BookingPhoto {
+  id: string;
+  path: string; // full image in storage
+  thumbPath: string; // small preview in storage
+}
+
+/** Photo changes made in the booking form, applied after the booking saves. */
+export interface PhotoChanges {
+  add: File[];
+  remove: BookingPhoto[];
+}
+
+export type Role = "owner" | "admin" | "team";
+
+export interface Member {
+  email: string;
+  name: string;
+  role: Role;
+  active: boolean;
+  createdAt: string;
+}
 
 export interface CalendarDayData {
   status: "WORKED" | "RESERVED" | "MIXED";
@@ -35,29 +58,3 @@ export interface CalendarDayData {
 }
 
 export type CalendarData = Record<string, CalendarDayData>;
-
-export interface ApiSuccess<T> {
-  success: true;
-  data: T;
-}
-
-export interface ApiFailure {
-  success: false;
-  error: string;
-  code?: "AUTH" | "ERROR";
-}
-
-export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
-
-export interface LogsSnapshot {
-  logs: WorkLog[];
-  version: string;
-  admin: boolean;
-}
-
-export interface LoginResult {
-  ok: boolean;
-  token?: string;
-  attemptsLeft?: number;
-  lockedUntil?: number; // epoch ms
-}

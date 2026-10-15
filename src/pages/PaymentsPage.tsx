@@ -7,6 +7,7 @@ import { formatCurrency, monthLabel, receivedOf } from "../utils/format";
 import { useConfirm } from "../components/ConfirmDialog";
 import { saveInvoice } from "../utils/invoice";
 import { Sheet } from "../components/Sheet";
+import { useNotice } from "../components/Notice";
 import { Loader } from "../components/Loader";
 import { FileDown } from "lucide-react";
 import type { WorkLog, WorkLogInput } from "../types";
@@ -14,6 +15,7 @@ import type { WorkLog, WorkLogInput } from "../types";
 export function PaymentsPage() {
   const { logs, loading, error, markPaid, recordPayment, editLog } = useLogs();
   const confirm = useConfirm();
+  const notify = useNotice();
   const [partialOpen, setPartialOpen] = useState(false);
   const [partialValue, setPartialValue] = useState("");
   const [groupByClient, setGroupByClient] = useState(false);
@@ -208,9 +210,12 @@ export function PaymentsPage() {
                           message: `${selected.clientName || "This booking"} will show ${formatCurrency(selected.amount)} received.`,
                           confirmLabel: "Mark paid",
                         });
-                        if (ok) {
-                          markPaid(selected.id);
+                        if (!ok) return;
+                        try {
+                          await markPaid(selected.id);
                           close();
+                        } catch (err) {
+                          notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
                         }
                       }}
                     >
@@ -224,12 +229,16 @@ export function PaymentsPage() {
                     ) : (
                       <form
                         className="partial-form"
-                        onSubmit={(e) => {
+                        onSubmit={async (e) => {
                           e.preventDefault();
                           const add = Number(partialValue);
                           if (!add || add <= 0) return;
-                          recordPayment(selected.id, received + add);
-                          close();
+                          try {
+                            await recordPayment(selected.id, received + add);
+                            close();
+                          } catch (err) {
+                            notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
+                          }
                         }}
                       >
                         <label className="field-label" htmlFor="partial-amount">Amount received now</label>
@@ -279,7 +288,7 @@ export function PaymentsPage() {
         <LogForm
           title="Edit booking"
           initial={editing}
-          onSubmit={(input: WorkLogInput) => editLog(editing.id, input)}
+          onSubmit={(input: WorkLogInput, photos) => editLog(editing.id, input, photos)}
           onClose={() => setEditing(null)}
         />
       )}

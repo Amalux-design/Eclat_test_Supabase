@@ -2,6 +2,7 @@ import { FileDown, LockKeyhole, MapPin, Phone, Trash2, Users } from "lucide-reac
 import { saveInvoice } from "../utils/invoice";
 import type { WorkLog } from "../types";
 import { StatusPill } from "./StatusPill";
+import { PhotoStrip } from "./Photos";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency, formatTime, isMapLink, isPartPaid, mapsUrl, parseWorks, telHref } from "../utils/format";
 
@@ -77,6 +78,8 @@ export function LogCard({ log, onClick, onDelete, dateLabel, tone = "paper" }: L
         )}
 
         {log.notes && <p className="booking-notes">{log.notes}</p>}
+
+        <PhotoStrip photos={log.photos} />
 
         {isAdmin && log.privateNotes && (
           <p className="booking-private">

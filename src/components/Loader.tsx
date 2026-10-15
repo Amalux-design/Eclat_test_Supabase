@@ -19,7 +19,7 @@ export function Loader({ label, size = "page" }: LoaderProps) {
   );
 }
 
-/** Tiny gold sweep for tight spots (sync badge, PIN pad). */
+/** Tiny gold sweep for tight spots (saving states). */
 export function LoaderLine({ className = "" }: { className?: string }) {
   return <span className={`loader-line mini ${className}`} aria-hidden="true" />;
 }

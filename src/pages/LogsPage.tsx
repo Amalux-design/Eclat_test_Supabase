@@ -7,6 +7,7 @@ import { LogForm } from "../components/LogForm";
 import { FAB } from "../components/FAB";
 import { Loader } from "../components/Loader";
 import { useConfirm } from "../components/ConfirmDialog";
+import { useNotice } from "../components/Notice";
 import { addDays, formatDateHeading, todayISO, weekRange } from "../utils/format";
 import type { WorkLog, WorkLogInput } from "../types";
 
@@ -62,6 +63,7 @@ export function LogsPage() {
   const { logs, loading, error, addLog, editLog, removeLog } = useLogs();
   const { isAdmin } = useAuth();
   const confirm = useConfirm();
+  const notify = useNotice();
   const [chip, setChip] = useState<ChipId>("today");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<WorkLog | null>(null);
@@ -154,7 +156,12 @@ export function LogsPage() {
       confirmLabel: "Delete",
       destructive: true,
     });
-    if (ok) removeLog(log.id);
+    if (!ok) return;
+    try {
+      await removeLog(log.id);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Couldn't delete. Try again.", "error");
+    }
   }
 
   return (
@@ -278,7 +285,7 @@ export function LogsPage() {
         <LogForm
           title="New booking"
           defaultDate={activeChip === "tomorrow" ? addDays(todayISO(), 1) : undefined}
-          onSubmit={(input: WorkLogInput) => addLog(input)}
+          onSubmit={(input: WorkLogInput, photos) => addLog(input, photos)}
           onClose={() => setShowAdd(false)}
         />
       )}
@@ -287,7 +294,7 @@ export function LogsPage() {
         <LogForm
           title="Edit booking"
           initial={editing}
-          onSubmit={(input: WorkLogInput) => editLog(editing.id, input)}
+          onSubmit={(input: WorkLogInput, photos) => editLog(editing.id, input, photos)}
           onClose={() => setEditing(null)}
         />
       )}

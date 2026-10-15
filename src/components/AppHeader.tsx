@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { CloudOff, KeyRound, LockKeyhole } from "lucide-react";
+import { CloudOff, UserRound } from "lucide-react";
 import { Wordmark } from "./Wordmark";
-import { PinSheet } from "./PinSheet";
-import { useAuth } from "../context/AuthContext";
+import { AccountSheet } from "./AccountSheet";
 import { useLogs } from "../context/LogsContext";
-import { useConfirm } from "./ConfirmDialog";
 
 export function AppHeader() {
-  const { isAdmin, lock } = useAuth();
-  const { sync } = useLogs();
-  const [pinOpen, setPinOpen] = useState(false);
-  const confirm = useConfirm();
+  const { saving } = useLogs();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [online, setOnline] = useState(() => navigator.onLine);
   const headerRef = useRef<HTMLElement>(null);
 
   // Publish the header's real height (it grows with the phone's text-size
@@ -45,43 +42,31 @@ export function AppHeader() {
     return () => ro.disconnect();
   }, []);
 
-  async function handleLock() {
-    if (
-      sync.pending > 0 &&
-      !(await confirm({
-        title: "Lock with unsaved changes?",
-        message: `${sync.pending} change${sync.pending > 1 ? "s haven't" : " hasn't"} reached the sheet yet. They'll send next time admin is unlocked on this device.`,
-        confirmLabel: "Lock",
-      }))
-    ) {
-      return;
-    }
-    lock();
-  }
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
 
   return (
     <header className="masthead" ref={headerRef}>
       <div className="masthead-side" />
-      <Wordmark saving={isAdmin && sync.state === "syncing"} offline={isAdmin && sync.state === "offline"} />
+      <Wordmark saving={saving > 0} offline={!online} />
       <div className="masthead-side masthead-actions">
-        {isAdmin ? (
-          <>
-            {sync.state === "offline" && (
-              <span className="offline-mark" role="status" aria-label={`Offline, ${sync.pending} change${sync.pending === 1 ? "" : "s"} waiting`}>
-                <CloudOff size={16} strokeWidth={1.7} />
-              </span>
-            )}
-            <button className="masthead-btn" onClick={handleLock} aria-label="Lock admin mode">
-              <LockKeyhole size={17} strokeWidth={1.6} />
-            </button>
-          </>
-        ) : (
-          <button className="masthead-btn" onClick={() => setPinOpen(true)} aria-label="Unlock admin mode">
-            <KeyRound size={17} strokeWidth={1.6} />
-          </button>
+        {!online && (
+          <span className="offline-mark" role="status" aria-label="Offline: changes can't be saved until you're back online">
+            <CloudOff size={16} strokeWidth={1.7} />
+          </span>
         )}
+        <button className="masthead-btn" onClick={() => setAccountOpen(true)} aria-label="Account and team">
+          <UserRound size={18} strokeWidth={1.6} />
+        </button>
       </div>
-      {pinOpen && <PinSheet onClose={() => setPinOpen(false)} />}
+      {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
     </header>
   );
 }
