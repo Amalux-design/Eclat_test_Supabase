@@ -4015,3 +4015,20 @@ button,
 @media (prefers-reduced-motion: reduce) {
   [data-swipe] .page { animation: none; }
 }
+
+/* ---------- status badges: brand palette only ----------
+   Stronger badge = more needs doing. Booked is quiet, Done is a light oxblood
+   tint, Paid is gold (settled), Part paid is a gold outline (halfway), and
+   Payment due is solid oxblood, the one that should catch the eye. */
+.pill { border: 1px solid transparent; padding: 2px 9px; }
+.pill-reserved { color: var(--ink-2); background: var(--fill); }
+.pill-worked { color: var(--oxblood); background: rgba(66, 12, 21, 0.08); }
+.pill-paid { color: #7d5a36; background: rgba(212, 180, 140, 0.32); }
+.pill-partial { color: #7d5a36; background: transparent; border-color: var(--gilt-soft); }
+.pill-pending { color: var(--on-dark); background: var(--oxblood); }
+
+.booking-wine .pill-reserved { color: rgba(251, 243, 234, 0.82); background: rgba(255, 255, 255, 0.1); }
+.booking-wine .pill-worked { color: var(--on-dark); background: rgba(255, 255, 255, 0.18); }
+.booking-wine .pill-paid { color: var(--gilt-soft); background: rgba(212, 180, 140, 0.18); }
+.booking-wine .pill-partial { color: var(--gilt-soft); background: transparent; border-color: rgba(212, 180, 140, 0.55); }
+.booking-wine .pill-pending { color: var(--oxblood); background: var(--on-dark); }
