@@ -1,7 +1,7 @@
 /* Éclat by Harsha
    Cream ground, dark brown ink, oxblood actions. iOS conventions: system
    font (SF Pro on iPhone), large titles, inset grouped lists, frosted bars.
-   Bodoni Moda is reserved for titles and the wordmark, echoing the logo. */
+   Playfair Display is reserved for titles and the wordmark, echoing the logo. */
 
 :root {
   --cream: #f8f2ea;
@@ -22,7 +22,7 @@
   --on-dark: #fbf3ea;
 
   --font-ui: "Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-title: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --font-title: "Playfair Display", Georgia, serif;
   --font-script: "Pinyon Script", "Snell Roundhand", cursive;
 
   --r-group: 14px;
@@ -4055,3 +4055,7 @@ button,
   backdrop-filter: saturate(180%) blur(16px);
   -webkit-backdrop-filter: saturate(180%) blur(16px);
 }
+
+/* Playfair's default numbers dip below the line (old-style). Titles and
+   amounts use straight, even-width numbers so prices and dates read cleanly. */
+:where(*) { font-variant-numeric: lining-nums tabular-nums; }
