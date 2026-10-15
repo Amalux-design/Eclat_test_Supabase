@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CloudOff, UserRound } from "lucide-react";
+import { CloudOff, KeyRound } from "lucide-react";
 import { Wordmark } from "./Wordmark";
 import { AccountSheet } from "./AccountSheet";
 import { useLogs } from "../context/LogsContext";
@@ -63,7 +63,7 @@ export function AppHeader() {
           </span>
         )}
         <button className="masthead-btn" onClick={() => setAccountOpen(true)} aria-label="Account and team">
-          <UserRound size={18} strokeWidth={1.6} />
+          <KeyRound size={24} strokeWidth={1.5} />
         </button>
       </div>
       {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
