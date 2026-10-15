@@ -100,6 +100,26 @@ export function LogsPage() {
     };
   }, [searchOpen]);
 
+  // Date headings stick just under the filter bar; keep that offset exact
+  // as the bar's height changes (search open, text size, screen width).
+  useEffect(() => {
+    const bar = rowRef.current?.closest<HTMLElement>(".chip-bar");
+    if (!bar) return;
+    const set = () =>
+      document.documentElement.style.setProperty(
+        "--day-top",
+        `${(parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight}px`
+      );
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(bar);
+    window.addEventListener("resize", set);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", set);
+    };
+  }, []);
+
   function closeSearch() {
     setQuery("");
     setSearchOpen(false);

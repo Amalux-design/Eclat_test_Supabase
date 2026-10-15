@@ -4032,3 +4032,20 @@ button,
 .booking-wine .pill-paid { color: var(--gilt-soft); background: rgba(212, 180, 140, 0.18); }
 .booking-wine .pill-partial { color: var(--gilt-soft); background: transparent; border-color: rgba(212, 180, 140, 0.55); }
 .booking-wine .pill-pending { color: var(--oxblood); background: var(--on-dark); }
+
+/* ---------- Bookings: date heading sticks while its group scrolls ----------
+   Sticky inside its own .day-group, so it rides under the filter bar until
+   that day's last card passes, then the next date pushes it away. A small
+   frosted pill so it stays readable over the cards beneath. */
+.day-group > .day-heading {
+  position: sticky;
+  top: calc(var(--day-top, 110px) + 6px);
+  z-index: 5;
+  width: fit-content;
+  margin: 0 0 6px 6px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(248, 242, 234, 0.78);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+}
