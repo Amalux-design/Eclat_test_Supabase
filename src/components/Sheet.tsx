@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { useSheet } from "../utils/useSheet";
 
@@ -11,7 +12,8 @@ interface SheetProps {
 /** Bottom sheet that slides away when closed. */
 export function Sheet({ label, onClose, children }: SheetProps) {
   const { closing, close, sheetRef } = useSheet(onClose);
-  return (
+  // Portalled to <body> so page animations never shift the sheet.
+  return createPortal(
     <div className={`modal-overlay ${closing ? "closing" : ""}`} onClick={close}>
       <div
         ref={sheetRef}
@@ -22,6 +24,8 @@ export function Sheet({ label, onClose, children }: SheetProps) {
       >
         {children(close)}
       </div>
-    </div>
+    </div>,
+    document.body
+
   );
 }

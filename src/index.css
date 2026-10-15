@@ -3567,3 +3567,31 @@ button,
 .gate .field-input + .field-input {
   margin-top: -2px;
 }
+
+/* ---------- tab entrance + floating button ---------- */
+
+/* Fade only: a transform here would make the page the positioning frame for
+   fixed elements and throw them out of place mid-animation. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* "+ New" rises in just after the page appears, then stays put. */
+.fab {
+  animation: fab-in 0.5s var(--ease-flow) 0.12s backwards;
+}
+
+@keyframes fab-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab {
+    animation: none;
+  }
+}

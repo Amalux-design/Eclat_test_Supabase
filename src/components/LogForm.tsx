@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, Minus, Plus } from "lucide-react";
 import type { BookingPhoto, PaymentStatus, PhotoChanges, WorkLog, WorkLogInput, WorkStatus } from "../types";
@@ -127,7 +128,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     }
   }
 
-  return (
+  // Portalled to <body> so page animations never shift the sheet.
+  return createPortal(
     <div className={`modal-overlay ${closing ? "closing" : ""}`} onClick={close}>
       <div
         ref={sheetRef}
@@ -391,6 +393,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
+
   );
 }
