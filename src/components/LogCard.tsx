@@ -1,4 +1,4 @@
-import { FileDown, LockKeyhole, MapPin, Phone, Trash2, Users } from "lucide-react";
+import { FileDown, LockKeyhole, MapPin, PencilLine, Phone, Trash2, Users } from "lucide-react";
 import { saveInvoice } from "../utils/invoice";
 import type { WorkLog } from "../types";
 import { StatusPill } from "./StatusPill";
@@ -10,12 +10,14 @@ interface LogCardProps {
   log: WorkLog;
   onClick?: () => void;
   onDelete?: () => void;
+  /** Admin-only Edit pill; viewing a booking never opens the form by itself. */
+  onEdit?: () => void;
   /** Show a short date above the time, for lists that span several days. */
   dateLabel?: string;
   tone?: "paper" | "wine";
 }
 
-export function LogCard({ log, onClick, onDelete, dateLabel, tone = "paper" }: LogCardProps) {
+export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "paper" }: LogCardProps) {
   const { isAdmin } = useAuth();
   const services = parseWorks(log.work);
   const interactive = Boolean(onClick);
@@ -130,6 +132,19 @@ export function LogCard({ log, onClick, onDelete, dateLabel, tone = "paper" }: L
                   }}
                 >
                   <Trash2 size={15} strokeWidth={1.6} />
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  className="round-btn edit-pill"
+                  aria-label={`Edit booking for ${log.clientName || "this client"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <PencilLine size={15} strokeWidth={1.7} />
+                  <span>Edit</span>
                 </button>
               )}
             </span>

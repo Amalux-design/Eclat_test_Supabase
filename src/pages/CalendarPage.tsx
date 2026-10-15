@@ -234,7 +234,7 @@ export function CalendarPage() {
           <div className="list">
             {dayLogs.map((log) => (
               <div key={log.id}>
-                <LogCard log={log} onClick={isAdmin ? () => setEditing(log) : undefined} />
+                <LogCard log={log} onEdit={isAdmin ? () => setEditing(log) : undefined} />
                 {isAdmin && log.status === "RESERVED" && selectedDate <= todayISO() && (
                   <button className="row-action" onClick={() => setConverting(log)}>Mark as done</button>
                 )}

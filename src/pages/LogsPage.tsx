@@ -225,7 +225,7 @@ export function LogsPage() {
               log={log}
               tone="wine"
               dateLabel={shortDate(log.date)}
-              onClick={open && (() => open(log))}
+              onEdit={open && (() => open(log))}
               onDelete={isAdmin ? () => handleDelete(log) : undefined}
             />
           ))}
@@ -247,7 +247,7 @@ export function LogsPage() {
               log={log}
               tone="wine"
               dateLabel={multiDay ? shortDate(log.date) : undefined}
-              onClick={open && (() => open(log))}
+              onEdit={open && (() => open(log))}
               onDelete={isAdmin ? () => handleDelete(log) : undefined}
             />
           ))}
@@ -271,7 +271,7 @@ export function LogsPage() {
                 <LogCard
                   key={log.id}
                   log={log}
-                  onClick={open && (() => open(log))}
+                  onEdit={open && (() => open(log))}
                   onDelete={isAdmin ? () => handleDelete(log) : undefined}
                 />
               ))}

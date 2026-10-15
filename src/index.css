@@ -3907,3 +3907,37 @@ button,
     padding: 0 72px;
   }
 }
+
+/* ---------- Edit pill on booking cards ---------- */
+
+.round-btn.edit-pill {
+  width: auto;
+  padding: 0 14px 0 12px;
+  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---------- photo viewer: sensible size on large screens ---------- */
+
+.photo-viewer img {
+  width: auto;
+  height: auto;
+  max-width: min(100%, 1100px);
+  max-height: min(82vh, 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+@media (min-width: 1024px) {
+  .photo-viewer {
+    padding: 48px;
+  }
+
+  .photo-viewer img {
+    max-width: min(70vw, 1000px);
+    max-height: 80vh;
+  }
+}

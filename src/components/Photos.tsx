@@ -123,7 +123,11 @@ function PhotoViewer({ photos, start, onClose }: { photos: BookingPhoto[]; start
       className="photo-viewer"
       role="dialog"
       aria-label="Reference photo"
-      onClick={onClose}
+      onClick={(e) => {
+        // Portals still bubble through React parents; don't let this reach the booking card.
+        e.stopPropagation();
+        onClose();
+      }}
       onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
         if (touch.current === null) return;
@@ -137,7 +141,14 @@ function PhotoViewer({ photos, start, onClose }: { photos: BookingPhoto[]; start
       ) : (
         <span className="photo-loading big" />
       )}
-      <button className="photo-viewer-close" onClick={onClose} aria-label="Close">
+      <button
+        className="photo-viewer-close"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        aria-label="Close"
+      >
         <X size={22} strokeWidth={2} />
       </button>
       {photos.length > 1 && (
