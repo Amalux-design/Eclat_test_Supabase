@@ -1576,6 +1576,10 @@ textarea.field-input {
   border: 1px solid rgba(66, 12, 21, 0.22);
   border-radius: 18px;
   padding: 14px 0 2px;
+}
+
+/* Only when a different day is picked, not every time the page appears. */
+.agenda.date-changed {
   animation: settle-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -4001,6 +4005,7 @@ button,
 /* ---------- swipe between tabs (phones) ----------
    The old page slides off with the finger (set from JS); the new one slides in
    from the far side. Transform only, no fade, so nothing flashes. */
+.page { animation: none; }
 [data-swipe="next"] .page { animation: swipe-in-next 0.4s cubic-bezier(0.22, 0.8, 0.25, 1); }
 [data-swipe="prev"] .page { animation: swipe-in-prev 0.4s cubic-bezier(0.22, 0.8, 0.25, 1); }
 @keyframes swipe-in-next { from { transform: translate3d(100%, 0, 0); } }

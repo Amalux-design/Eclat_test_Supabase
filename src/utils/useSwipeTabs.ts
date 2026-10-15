@@ -21,15 +21,22 @@ export function useSwipeTabs(main: React.RefObject<HTMLElement | null>, paths: s
   // new page paints, and never removed mid-animation: changing it later would
   // restart the page's animation and make it flash.
   const pending = useRef<"next" | "prev" | null>(null);
+  const prevPath = useRef(pathname);
 
   // New tab is on screen: hand the highlight back to --active before paint.
   useLayoutEffect(() => {
     const nav = document.querySelector<HTMLElement>(".bottom-nav");
     nav?.style.setProperty("--swipe", "0");
+    // Tab taps slide too, in the direction of the tab: no fades anywhere.
     const root = document.documentElement;
-    if (pending.current) root.dataset.swipe = pending.current;
+    const { paths } = state.current;
+    const from = paths.indexOf(prevPath.current);
+    const to = paths.indexOf(pathname);
+    const dir = pending.current ?? (from < 0 || to < 0 || from === to ? null : to > from ? "next" : "prev");
+    if (dir && window.innerWidth < 1024) root.dataset.swipe = dir;
     else delete root.dataset.swipe;
     pending.current = null;
+    prevPath.current = pathname;
   }, [pathname]);
 
   useEffect(() => {
