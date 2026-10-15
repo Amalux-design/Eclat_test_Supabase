@@ -3153,7 +3153,7 @@ button,
   border: none;
   background: transparent;
   outline: none;
-  padding: 0 40px 0 36px;
+  padding: 0 16px 0 38px;
   font-size: 16px;
   color: var(--ink);
   opacity: 0;
@@ -3973,3 +3973,35 @@ button,
   }
 }
 
+
+/* ---------- search: lens turns into close ---------- */
+.search-pill .search-pill-icon {
+  left: 3px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.25s ease;
+}
+.search-pill-icon svg {
+  grid-area: 1 / 1;
+  transition: opacity 0.3s ease, transform 0.45s var(--ease-flow);
+}
+.search-pill-icon .cross { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+.search-pill.open .search-pill-icon { pointer-events: auto; cursor: pointer; background: var(--fill); }
+.search-pill.open .search-pill-icon .lens { opacity: 0; transform: rotate(90deg) scale(0.6); }
+.search-pill.open .search-pill-icon .cross { opacity: 1; transform: none; }
+
+/* ---------- swipe between tabs (phones) ---------- */
+[data-swipe="next"] .page { animation: swipe-in-next 0.34s var(--ease-out-soft); }
+[data-swipe="prev"] .page { animation: swipe-in-prev 0.34s var(--ease-out-soft); }
+@keyframes swipe-in-next { from { opacity: 0; transform: translate3d(36px, 0, 0); } }
+@keyframes swipe-in-prev { from { opacity: 0; transform: translate3d(-36px, 0, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-swipe] .page { animation: page-in 0.2s ease; }
+}

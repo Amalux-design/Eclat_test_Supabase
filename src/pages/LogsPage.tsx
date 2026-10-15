@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
 import { useAuth } from "../context/AuthContext";
@@ -78,6 +78,27 @@ export function LogsPage() {
     // Focus inside the tap so the phone keyboard opens straight away.
     searchRef.current?.focus({ preventScroll: true });
   }
+
+  // Tapping elsewhere or scrolling the page closes an empty search. With a
+  // search typed, it only puts the keyboard away so the results stay readable.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const pill = searchRef.current?.closest(".search-pill");
+    const dismiss = (e: Event) => {
+      if (e.type === "pointerdown" && pill?.contains(e.target as Node)) return;
+      if (searchRef.current?.value.trim()) searchRef.current.blur();
+      else closeSearch();
+    };
+    const t = setTimeout(() => {
+      document.addEventListener("pointerdown", dismiss, true);
+      window.addEventListener("scroll", dismiss, { passive: true });
+    }, 250); // ignore the scroll the opening keyboard can cause
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("pointerdown", dismiss, true);
+      window.removeEventListener("scroll", dismiss);
+    };
+  }, [searchOpen]);
 
   function closeSearch() {
     setQuery("");
@@ -172,7 +193,22 @@ export function LogsPage() {
 
       <div className="chip-bar"><div ref={rowRef} className={`chip-row ${searchOpen ? "searching" : ""}`} role="tablist" aria-label="Show bookings">
         <div className={`search-pill ${searchOpen ? "open" : ""}`} onClick={searchOpen ? undefined : openSearch}>
-          <Search size={17} strokeWidth={2} className="search-pill-icon" aria-hidden="true" />
+          {/* The lens turns into the close button once open: same spot, easy reach. */}
+          <button
+            type="button"
+            className="search-pill-icon"
+            onClick={(e) => {
+              if (!searchOpen) return;
+              e.stopPropagation();
+              closeSearch();
+            }}
+            tabIndex={searchOpen ? 0 : -1}
+            aria-label={searchOpen ? "Close search" : undefined}
+            aria-hidden={searchOpen ? undefined : true}
+          >
+            <Search size={17} strokeWidth={2} className="lens" />
+            <X size={17} strokeWidth={2.2} className="cross" />
+          </button>
           <input
             ref={searchRef}
             className="search-pill-input"
@@ -187,11 +223,6 @@ export function LogsPage() {
             onKeyDown={(e) => e.key === "Escape" && closeSearch()}
             tabIndex={searchOpen ? 0 : -1}
           />
-          {searchOpen && (
-            <button className="search-pill-close" onClick={closeSearch} aria-label="Close search">
-              <X size={16} strokeWidth={2.2} />
-            </button>
-          )}
         </div>
         {CHIPS.filter((c) => isAdmin || !c.adminOnly).map((c) => (
           <button

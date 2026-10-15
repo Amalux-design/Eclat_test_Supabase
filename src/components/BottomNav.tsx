@@ -8,6 +8,8 @@ const ITEMS = [
   { to: "/payments", label: "Earnings", icon: Wallet, adminOnly: true },
 ];
 
+export const TABS = ITEMS;
+
 export function BottomNav() {
   const { isAdmin } = useAuth();
   const { pathname } = useLocation();

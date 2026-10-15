@@ -1,7 +1,8 @@
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LogsProvider } from "./context/LogsContext";
-import { BottomNav } from "./components/BottomNav";
+import { BottomNav, TABS } from "./components/BottomNav";
+import { useSwipeTabs } from "./utils/useSwipeTabs";
 import { AppHeader } from "./components/AppHeader";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LogsPage } from "./pages/LogsPage";
@@ -12,7 +13,7 @@ import { BusyOverlay } from "./components/Loader";
 import { InstallHint } from "./components/InstallHint";
 import { NoticeProvider } from "./components/Notice";
 import { NoAccess, SignIn } from "./components/SignIn";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useLogs } from "./context/LogsContext";
 import { hideSplash } from "./utils/splash";
 
@@ -51,18 +52,28 @@ function AppRoutes() {
   );
 }
 
+/** Lives inside the signed-in shell, so <main> exists when it attaches. */
+function SwipeTabs({ main }: { main: React.RefObject<HTMLElement | null> }) {
+  const { isAdmin } = useAuth();
+  const paths = useMemo(() => TABS.filter((t) => isAdmin || !t.adminOnly).map((t) => t.to), [isAdmin]);
+  useSwipeTabs(main, paths);
+  return null;
+}
+
 /** Signed-out and removed people see only the sign-in / no-access screens. */
 function Shell() {
   const { status } = useAuth();
+  const mainRef = useRef<HTMLElement>(null);
   if (status === "signed-out") return <SignIn />;
   if (status === "no-access") return <NoAccess />;
   return (
     <div className="app-shell">
       <AppHeader />
-      <main>
+      <main ref={mainRef}>
         <AppRoutes />
       </main>
       <BottomNav />
+      <SwipeTabs main={mainRef} />
       <InstallHint />
     </div>
   );
