@@ -221,6 +221,9 @@ begin
   begin alter publication supabase_realtime add table public.bookings;        exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.booking_private; exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.booking_photos;  exception when duplicate_object then null; end;
+  -- Each person hears changes to their own row: removal or a role change
+  -- applies on their open app straight away.
+  begin alter publication supabase_realtime add table public.members;         exception when duplicate_object then null; end;
 end $$;
 
 -- ---------------------------------------------------------------------------

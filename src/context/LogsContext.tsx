@@ -121,19 +121,22 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, soon)
       .on("postgres_changes", { event: "*", schema: "public", table: "booking_photos" }, soon);
     if (isAdmin) channel.on("postgres_changes", { event: "*", schema: "public", table: "booking_private" }, soon);
+    // Own membership row changed (removed, restored, role switched): re-check
+    // access at once, so a removed person is locked out without a refresh.
+    channel.on("postgres_changes", { event: "*", schema: "public", table: "members" }, () => void recheck());
     channel.subscribe();
     // Catch up after the phone wakes or the app returns to the foreground.
     const onVisible = () => document.visibilityState === "visible" && soon();
     document.addEventListener("visibilitychange", onVisible);
-    // A removed member gets no live events, so re-check now and then too.
-    const heartbeat = window.setInterval(() => document.visibilityState === "visible" && soon(), 5 * 60 * 1000);
+    // Backstop if the live connection drops: re-check every minute.
+    const heartbeat = window.setInterval(() => document.visibilityState === "visible" && soon(), 60 * 1000);
     return () => {
       window.clearInterval(heartbeat);
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
       void supabase.removeChannel(channel);
     };
-  }, [ready, isAdmin, refetch]);
+  }, [ready, isAdmin, refetch, recheck]);
 
   // Reference photos are removed 2 months after the work date. Admin devices
   // run the sweep at most once a day; the team has no delete permission.
@@ -157,7 +160,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         if (n > 0) void refetch();
       })
       .catch((e) => console.warn("Photo clean-up skipped:", e));
-  }, [ready, isAdmin, refetch]);
+  }, [ready, isAdmin, refetch, recheck]);
 
   /** Run a write; on failure, explain it and re-sync where that helps. */
   const run = useCallback(
