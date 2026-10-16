@@ -4069,3 +4069,33 @@ button,
 /* Always keep room for the scrollbar, so a long day (page scrolls) and a
    short one (no scroll) give the calendar exactly the same width. */
 html { scrollbar-gutter: stable; }
+
+/* ---------- quote / invoice builder ---------- */
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.quote-btn { flex: none; }
+.quote-row {
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-group);
+  background: rgba(255, 255, 255, 0.6);
+}
+.quote-row-head { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.quote-row-head .field-label { margin: 0; }
+.quote-row-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.7fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.quote-subtotal { margin: 8px 2px 0; text-align: right; }
+.quote-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 8px 4px 14px;
+  font-family: var(--font-title);
+  color: var(--oxblood);
+  font-size: 20px;
+}
+.quote-total strong { font-size: 26px; }

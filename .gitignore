@@ -34,3 +34,4 @@ dist-ssr
 # Client data exports / imports (contain phone numbers)
 *.csv
 supabase/import.sql
+proposal/
