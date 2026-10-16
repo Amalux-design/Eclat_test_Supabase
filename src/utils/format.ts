@@ -86,6 +86,17 @@ export function parseWorks(work: string): string[] {
     .filter(Boolean);
 }
 
+/** "2× Classic Bridal" → { name: "Classic Bridal", qty: 2 }. No prefix means 1. */
+export function splitQty(work: string): { name: string; qty: number } {
+  const m = /^(\d+)\s*[×xX]\s+(.+)$/.exec(work.trim());
+  return m ? { name: m[2].trim(), qty: Math.max(1, Number(m[1])) } : { name: work.trim(), qty: 1 };
+}
+
+/** Inverse of splitQty: quantity 1 is stored as the plain name. */
+export function withQty(name: string, qty: number): string {
+  return qty > 1 ? `${qty}× ${name}` : name;
+}
+
 export function joinWorks(works: string[]): string {
   return works
     .map((w) => w.replace(/,/g, "").trim())

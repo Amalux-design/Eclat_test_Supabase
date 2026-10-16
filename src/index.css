@@ -4099,3 +4099,69 @@ html { scrollbar-gutter: stable; }
   font-size: 20px;
 }
 .quote-total strong { font-size: 26px; }
+
+/* ---------- service tiles with quantity ---------- */
+.service-option { padding: 0; position: relative; }
+.service-option:active { transform: none; }
+.service-tile-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  flex: 1;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border-radius: inherit;
+  cursor: pointer;
+  transition: transform 0.18s var(--ease-soft);
+}
+.service-tile-main:active { transform: scale(0.96); }
+.tile-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 8px 8px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid rgba(66, 12, 21, 0.18);
+  animation: settle-in 0.25s var(--ease-soft);
+}
+.tile-stepper button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--oxblood);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.tile-stepper button:active { background: var(--fill); }
+.tile-stepper span { font-weight: 600; color: var(--oxblood); font-size: 15px; }
+
+/* quote builder: selected lines */
+.quote-lines { margin-top: 14px; display: grid; gap: 10px; }
+.quote-line {
+  padding: 10px 12px;
+  border-radius: var(--r-group);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--separator);
+}
+.quote-line-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.quote-line-name { font-weight: 600; color: var(--oxblood); }
+.quote-line-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.quote-line-amount { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.quote-custom { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto; gap: 8px; margin-top: 12px; }

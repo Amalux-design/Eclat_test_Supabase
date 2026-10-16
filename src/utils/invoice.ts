@@ -5,7 +5,7 @@ import type { WorkLog } from "../types";
 import { withBusy } from "../components/Loader";
 import { BUSINESS } from "../data/business";
 import { servicePrice } from "../data/services";
-import { formatDateLong, formatTime, parseWorks, receivedOf, todayISO } from "./format";
+import { formatDateLong, formatTime, parseWorks, receivedOf, splitQty, todayISO, withQty } from "./format";
 
 const WINE: [number, number, number] = [70, 26, 28];
 const INK: [number, number, number] = [63, 23, 21];
@@ -74,8 +74,8 @@ export type DocKind = "invoice" | "quote";
 export interface DocRow {
   date?: string; // ISO; shown in a Date column when any row has one
   label: string;
-  rate?: number; // per person
-  qty?: number; // people
+  rate?: number; // per unit
+  qty?: number; // e.g. 2 for "2× Classic Bridal", or people
   amount: number;
 }
 
@@ -103,13 +103,16 @@ export function docTotal(d: Pick<DocData, "rows" | "extras">): number {
 
 /** Menu prices per service; any difference from the booked total becomes one adjustment line. */
 function lineItems(log: WorkLog): DocRow[] {
-  const services = parseWorks(log.work);
-  const priced: DocRow[] = services.map((s) => ({ label: s, amount: servicePrice(s) ?? 0 }));
+  const services = parseWorks(log.work).map(splitQty);
+  const priced: DocRow[] = services.map((s) => {
+    const rate = servicePrice(s.name) ?? 0;
+    return { label: s.name, rate, qty: s.qty, amount: rate * s.qty };
+  });
   const menuTotal = priced.reduce((sum, l) => sum + l.amount, 0);
-  if (services.length === 1 || menuTotal === 0) {
+  if (menuTotal === 0 || (services.length === 1 && services[0].qty === 1)) {
     return services.length === 1
-      ? [{ label: services[0], amount: log.amount }]
-      : [{ label: services.join(", ") || "Makeup services", amount: log.amount }];
+      ? [{ label: withQty(services[0].name, services[0].qty), amount: log.amount }]
+      : [{ label: services.map((s) => withQty(s.name, s.qty)).join(", ") || "Makeup services", amount: log.amount }];
   }
   const diff = log.amount - menuTotal;
   if (diff !== 0) priced.push({ label: diff > 0 ? "Additional services" : "Discount", amount: diff });
@@ -238,7 +241,8 @@ async function buildDocument(d: DocData): Promise<void> {
   // Services table. Detailed columns only when the rows need them.
   const detailed = d.rows.some((r) => r.date || (r.qty ?? 1) > 1);
   const cDate = M;
-  const cService = detailed ? M + 24 : M;
+  const hasDates = d.rows.some((r) => r.date);
+  const cService = hasDates ? M + 24 : M;
   const cRate = R - 62;
   const cQty = R - 34;
   doc.setDrawColor(...RULE);
@@ -246,9 +250,9 @@ async function buildDocument(d: DocData): Promise<void> {
   doc.setFontSize(8.5);
   doc.setTextColor(...GILT);
   if (detailed) {
-    doc.text("Date", cDate, y);
+    if (hasDates) doc.text("Date", cDate, y);
     doc.text("Rate", cRate, y, { align: "right" });
-    doc.text("People", cQty, y, { align: "center" });
+    doc.text("Qty", cQty, y, { align: "center" });
   }
   doc.text("Service", cService, y);
   doc.text("Amount", R, y, { align: "right" });

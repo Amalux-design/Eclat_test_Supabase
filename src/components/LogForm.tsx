@@ -2,7 +2,8 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, Minus, Plus } from "lucide-react";
 import type { BookingPhoto, PaymentStatus, PhotoChanges, WorkLog, WorkLogInput, WorkStatus } from "../types";
-import { formatCurrency, isPastOrToday, isValidPhone, joinWorks, normalizePhone, parseWorks, todayISO } from "../utils/format";
+import { formatCurrency, isPastOrToday, isValidPhone, joinWorks, normalizePhone, parseWorks, splitQty, todayISO, withQty } from "../utils/format";
+import { ServiceTiles } from "./ServiceTiles";
 import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
 import { useSheet } from "../utils/useSheet";
@@ -26,7 +27,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
   const [altPhone, setAltPhone] = useState(initial?.altPhone ?? "");
-  const [selectedWorks, setSelectedWorks] = useState<string[]>(parseWorks(initial?.work ?? ""));
+  // Services in the order picked, each with a count ("2× Classic Bridal").
+  const [works, setWorks] = useState<{ name: string; qty: number }[]>(parseWorks(initial?.work ?? "").map(splitQty));
   const [customWork, setCustomWork] = useState("");
   const [eventType, setEventType] = useState(initial?.eventType ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
@@ -47,7 +49,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<BookingPhoto[]>([]);
 
-  const customServices = selectedWorks.filter((w) => !KNOWN_SERVICES.has(w));
+  const customServices = works.filter((w) => !KNOWN_SERVICES.has(w.name)).map((w) => ({ name: w.name }));
+  const qtyByName = Object.fromEntries(works.map((w) => [w.name, w.qty]));
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -58,19 +61,24 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
   // Menu prices add up into the amount until the amount is edited by hand.
   const menuTotal = useMemo(
-    () => selectedWorks.reduce((sum, w) => sum + (servicePrice(w) ?? 0), 0),
-    [selectedWorks]
+    () => works.reduce((sum, w) => sum + (servicePrice(w.name) ?? 0) * w.qty, 0),
+    [works]
   );
   const amount = amountTouched ? typedAmount : menuTotal ? String(menuTotal) : "";
 
-  function toggleWork(w: string) {
-    setSelectedWorks((prev) => (prev.includes(w) ? prev.filter((x) => x !== w) : [...prev, w]));
+  function setWorkQty(name: string, qty: number) {
+    setWorks((prev) => {
+      if (qty <= 0) return prev.filter((w) => w.name !== name);
+      return prev.some((w) => w.name === name)
+        ? prev.map((w) => (w.name === name ? { ...w, qty } : w))
+        : [...prev, { name, qty }];
+    });
   }
 
   function addCustomWork() {
     const w = customWork.replace(/,/g, "").trim();
     if (!w) return;
-    setSelectedWorks((prev) => (prev.includes(w) ? prev : [...prev, w]));
+    setWorks((prev) => (prev.some((x) => x.name === w) ? prev : [...prev, { name: w, qty: 1 }]));
     setCustomWork("");
   }
 
@@ -87,7 +95,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       document.getElementById("f-name")?.focus();
       return;
     }
-    const workValue = joinWorks(selectedWorks);
+    const workValue = joinWorks(works.map((w) => withQty(w.name, w.qty)));
     const amountNum = Math.max(0, Number(amount) || 0);
 
     const received = Math.min(Number(paidSoFar) || 0, amountNum);
@@ -210,39 +218,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
           <fieldset className="form-section">
             <legend>Services</legend>
-            {SERVICE_GROUPS.map((group) => (
-              <div key={group.title} className="service-group">
-                <div className="service-group-title">{group.title}</div>
-                <div className="service-options">
-                  {group.services.map((s) => {
-                    const active = selectedWorks.includes(s.name);
-                    return (
-                      <button
-                        key={s.name}
-                        type="button"
-                        className={`service-option ${active ? "active" : ""}`}
-                        onClick={() => toggleWork(s.name)}
-                        aria-pressed={active}
-                      >
-                        <span className="service-name">{s.name}</span>
-                        <span className="service-price">{s.price ? formatCurrency(s.price) : "On call"}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {customServices.length > 0 && (
-              <div className="service-options">
-                {customServices.map((w) => (
-                  <button key={w} type="button" className="service-option active" onClick={() => toggleWork(w)} aria-pressed>
-                    <span className="service-name">{w}</span>
-                    <span className="service-price">Custom</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <ServiceTiles qty={qtyByName} onChange={setWorkQty} custom={customServices} />
 
             <div className="work-custom-row">
               <input

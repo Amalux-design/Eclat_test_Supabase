@@ -3,20 +3,20 @@ import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { SERVICE_GROUPS, servicePrice } from "../data/services";
 import { BUSINESS } from "../data/business";
-import { formatCurrency, todayISO } from "../utils/format";
+import { formatCurrency, todayISO, withQty } from "../utils/format";
+import { ServiceTiles } from "./ServiceTiles";
 import { useSheet } from "../utils/useSheet";
 import { DateField } from "./Pickers";
 import { docTotal, newDocNumber, saveDocument, type DocData, type DocKind } from "../utils/invoice";
 
-interface Row {
-  key: number;
-  date: string;
-  service: string;
+interface Line {
+  name: string;
+  qty: number;
   rate: string;
-  people: string;
+  date: string;
 }
 
-const SERVICE_NAMES = SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name));
+const MENU = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 const num = (v: string) => Math.max(0, Number(v.replace(/[^\d.]/g, "")) || 0);
 
 /** Build a quotation or invoice for anyone, without saving a booking. */
@@ -26,7 +26,9 @@ export function QuoteSheet({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [phones, setPhones] = useState("");
   const [place, setPlace] = useState("");
-  const [rows, setRows] = useState<Row[]>([{ key: 1, date: "", service: "", rate: "", people: "1" }]);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [customName, setCustomName] = useState("");
+  const [customRate, setCustomRate] = useState("");
   const [travel, setTravel] = useState("");
   const [notes, setNotes] = useState(BUSINESS.defaultNote ?? "");
   const [advance, setAdvance] = useState("");
@@ -34,39 +36,43 @@ export function QuoteSheet({ onClose }: { onClose: () => void }) {
   const [method, setMethod] = useState("Google Pay (GPay)");
   const [error, setError] = useState<string | null>(null);
 
-  const docRows = rows
-    .filter((r) => r.service.trim())
-    .map((r) => {
-      const rate = num(r.rate);
-      const qty = Math.max(1, Math.round(num(r.people)) || 1);
-      return { date: r.date || undefined, label: r.service.trim(), rate, qty, amount: rate * qty };
-    });
+  const docRows = lines.map((l) => {
+    const rate = num(l.rate);
+    return { date: l.date || undefined, label: l.name, rate, qty: l.qty, amount: rate * l.qty };
+  });
   const extras = num(travel) ? [{ label: "Travel", amount: num(travel) }] : [];
   const total = docTotal({ rows: docRows, extras });
   const eventDates = useMemo(() => {
-    const ds = [...new Set(rows.map((r) => r.date).filter(Boolean))].sort();
+    const ds = [...new Set(lines.map((l) => l.date).filter(Boolean))].sort();
     return ds
       .map((d) => new Date(d + "T00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }))
       .join(" & ");
-  }, [rows]);
+  }, [lines]);
 
-  function update(key: number, patch: Partial<Row>) {
-    setRows((rs) =>
-      rs.map((r) => {
-        if (r.key !== key) return r;
-        const next = { ...r, ...patch };
-        // Picking a menu service fills its price (still editable).
-        if (patch.service !== undefined) {
-          const p = servicePrice(patch.service);
-          if (p) next.rate = String(p);
-        }
-        return next;
-      })
-    );
+  // Tiles: add, change the count, or remove (qty 0).
+  function setQty(name: string, qty: number) {
+    setLines((ls) => {
+      if (qty <= 0) return ls.filter((l) => l.name !== name);
+      if (ls.some((l) => l.name === name)) return ls.map((l) => (l.name === name ? { ...l, qty } : l));
+      const p = servicePrice(name);
+      return [...ls, { name, qty, rate: p ? String(p) : "", date: ls[ls.length - 1]?.date ?? "" }];
+    });
   }
 
-  function addRow() {
-    setRows((rs) => [...rs, { key: Date.now(), date: rs[rs.length - 1]?.date ?? "", service: "", rate: "", people: "1" }]);
+  function editLine(name: string, patch: Partial<Line>) {
+    setLines((ls) => ls.map((l) => (l.name === name ? { ...l, ...patch } : l)));
+  }
+
+  function addCustom() {
+    const name = customName.replace(/,/g, "").trim();
+    if (!name) return;
+    setLines((ls) =>
+      ls.some((l) => l.name === name)
+        ? ls
+        : [...ls, { name, qty: 1, rate: customRate, date: ls[ls.length - 1]?.date ?? "" }]
+    );
+    setCustomName("");
+    setCustomRate("");
   }
 
   async function download() {
@@ -143,44 +149,39 @@ export function QuoteSheet({ onClose }: { onClose: () => void }) {
 
           <fieldset className="form-section">
             <legend>Services</legend>
-            <datalist id="q-services">
-              {SERVICE_NAMES.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-            {rows.map((r, i) => (
-              <div key={r.key} className="quote-row">
-                <div className="quote-row-head">
-                  <span className="field-label">Item {i + 1}</span>
-                  {rows.length > 1 && (
-                    <button type="button" className="icon-btn" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} aria-label={`Remove item ${i + 1}`}>
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
-                <input
-                  className="field-input"
-                  list="q-services"
-                  value={r.service}
-                  onChange={(e) => update(r.key, { service: e.target.value })}
-                  placeholder="Service, e.g. Signature Bridal or Hairdo"
-                  aria-label={`Service ${i + 1}`}
-                />
-                <div className="quote-row-fields">
-                  <DateField id={`q-date-${r.key}`} value={r.date} onChange={(v) => update(r.key, { date: v })} />
-                  <input className="field-input" inputMode="numeric" value={r.rate} onChange={(e) => update(r.key, { rate: e.target.value })} placeholder="Rate ₹" aria-label={`Rate ${i + 1}`} />
-                  <input className="field-input" inputMode="numeric" value={r.people} onChange={(e) => update(r.key, { people: e.target.value })} placeholder="People" aria-label={`People ${i + 1}`} />
-                </div>
-                {num(r.rate) > 0 && (
-                  <p className="field-hint quote-subtotal">
-                    {formatCurrency(num(r.rate))} × {Math.max(1, Math.round(num(r.people)) || 1)} = {formatCurrency(num(r.rate) * (Math.max(1, Math.round(num(r.people)) || 1)))}
-                  </p>
-                )}
+            <ServiceTiles
+              qty={Object.fromEntries(lines.map((l) => [l.name, l.qty]))}
+              onChange={setQty}
+              custom={lines.filter((l) => !MENU.has(l.name)).map((l) => ({ name: l.name, price: num(l.rate) || undefined }))}
+            />
+
+            <div className="quote-custom">
+              <input className="field-input" value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Something else, e.g. Hairdo" aria-label="Custom item" />
+              <input className="field-input" inputMode="numeric" value={customRate} onChange={(e) => setCustomRate(e.target.value)} placeholder="Rate ₹" aria-label="Custom item rate" />
+              <button type="button" className="ghost-btn with-icon" onClick={addCustom}>
+                <Plus size={16} /> Add
+              </button>
+            </div>
+
+            {lines.length > 0 && (
+              <div className="quote-lines">
+                {lines.map((l) => (
+                  <div key={l.name} className="quote-line">
+                    <div className="quote-line-top">
+                      <span className="quote-line-name">{withQty(l.name, l.qty)}</span>
+                      <span className="quote-line-amount">{formatCurrency(num(l.rate) * l.qty)}</span>
+                    </div>
+                    <div className="quote-line-fields">
+                      <DateField id={`q-date-${l.name}`} value={l.date} onChange={(v) => editLine(l.name, { date: v })} />
+                      <input className="field-input" inputMode="numeric" value={l.rate} onChange={(e) => editLine(l.name, { rate: e.target.value })} placeholder="Rate ₹" aria-label={`Rate for ${l.name}`} />
+                      <button type="button" className="icon-btn" onClick={() => setQty(l.name, 0)} aria-label={`Remove ${l.name}`}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-            <button type="button" className="ghost-btn full with-icon" onClick={addRow}>
-              <Plus size={16} /> Add item
-            </button>
+            )}
 
             <label className="field-label" htmlFor="q-travel">Travel charges</label>
             <input id="q-travel" className="field-input" inputMode="numeric" value={travel} onChange={(e) => setTravel(e.target.value)} placeholder="₹ (optional)" />
