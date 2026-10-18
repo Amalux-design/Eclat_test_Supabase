@@ -4281,7 +4281,7 @@ html { scrollbar-gutter: stable; }
 }
 .photo-viewer-step:hover:not(:disabled) { background: rgba(255, 255, 255, 0.24); }
 .photo-viewer-step:active:not(:disabled) { transform: scale(0.92); }
-.photo-viewer-step:disabled { opacity: 0.3; cursor: default; }
+.photo-viewer-step:disabled { opacity: 0; pointer-events: none; }
 
 /* Photo count reads as plain text between the arrows. */
 .photo-viewer .photo-viewer-nav .photo-viewer-count {
