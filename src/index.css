@@ -4174,11 +4174,6 @@ html { scrollbar-gutter: stable; }
   font-family: var(--font-fin);
   font-variant-numeric: lining-nums tabular-nums;
 }
-.earnings-page .page-title {
-  font-family: var(--font-fin);
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
 .earnings-page .page-head { align-items: center; }
 
 /* year filter pill */
@@ -4231,8 +4226,8 @@ html { scrollbar-gutter: stable; }
 }
 .ledger-title {
   margin: 0;
-  font-family: var(--font-fin);
-  font-weight: 400;
+  font-family: var(--font-title);
+  font-weight: 600;
   font-size: 22px;
   color: var(--ink);
 }
@@ -4246,3 +4241,16 @@ html { scrollbar-gutter: stable; }
 .earnings-page .month-row-figures { font-size: 18px; font-weight: 600; }
 .earnings-page .client-heading { font-family: var(--font-fin); }
 .earnings-page .booking { font-family: var(--font-fin); }
+
+/* Earnings card + rows: every figure and label in the sans (beats the older
+   .ledger.pinned serif rules). Titles keep the brand serif. */
+.earnings-page .ledger.pinned .ledger-figure,
+.earnings-page .ledger.pinned .ledger-value,
+.earnings-page .ledger.pinned .ledger-label,
+.earnings-page .month-row-name,
+.earnings-page .month-row-figures {
+  font-family: var(--font-fin);
+}
+.earnings-page .ledger.pinned .ledger-figure { font-weight: 400; font-size: 36px; letter-spacing: -0.01em; }
+.earnings-page .ledger.pinned .ledger-value { font-weight: 400; font-size: 24px; }
+.earnings-page .page-title { font-family: var(--font-title); }
