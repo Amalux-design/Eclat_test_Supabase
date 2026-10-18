@@ -9,11 +9,21 @@ import { saveInvoice } from "../utils/invoice";
 import { Sheet } from "../components/Sheet";
 import { useNotice } from "../components/Notice";
 import { Loader } from "../components/Loader";
+import { SelectField } from "../components/Pickers";
 import { FileDown } from "lucide-react";
 import type { WorkLog, WorkLogInput } from "../types";
 
 export function PaymentsPage() {
-  const { logs, loading, error, markPaid, recordPayment, editLog } = useLogs();
+  const { logs: allLogs, loading, error, markPaid, recordPayment, editLog } = useLogs();
+  // Year filter: defaults to this year when it has bookings, else the latest.
+  const years = useMemo(
+    () => [...new Set(allLogs.map((l) => l.date.slice(0, 4)))].sort().reverse(),
+    [allLogs]
+  );
+  const thisYear = String(new Date().getFullYear());
+  const [yearPick, setYearPick] = useState<string | null>(null);
+  const year = yearPick ?? (years.includes(thisYear) ? thisYear : years[0] ?? "");
+  const logs = useMemo(() => (year ? allLogs.filter((l) => l.date.startsWith(year)) : allLogs), [allLogs, year]);
   const confirm = useConfirm();
   const notify = useNotice();
   const [partialOpen, setPartialOpen] = useState(false);
@@ -81,6 +91,11 @@ export function PaymentsPage() {
     <div className="page earnings-page">
       <div className="page-head">
         <h1 className="page-title">Earnings</h1>
+        {years.length > 0 && (
+          <div className="year-pill">
+            <SelectField label="Year" value={year} options={years} placeholder="All years" onChange={(v) => setYearPick(v)} />
+          </div>
+        )}
       </div>
 
       {error && <div className="inline-note">{error}</div>}
@@ -90,7 +105,7 @@ export function PaymentsPage() {
         <>
           <section className="ledger pinned" aria-label="Totals">
             <div className="ledger-total">
-              <span className="ledger-label">Total booked</span>
+              <span className="ledger-label">Total booked{year ? ` in ${year}` : ""}</span>
               <span className="ledger-figure">{formatCurrency(totals.total)}</span>
             </div>
             <div className="ledger-bar" aria-hidden="true">
@@ -102,21 +117,27 @@ export function PaymentsPage() {
                 <span className="ledger-value">{formatCurrency(totals.paid)}</span>
               </div>
               <div>
-                <span className="ledger-label">
-                  Due from {totals.pendingCount} {totals.pendingCount === 1 ? "booking" : "bookings"}
-                </span>
+                <span className="ledger-label">Outstanding</span>
                 <span className="ledger-value due">{formatCurrency(totals.pending)}</span>
+                {totals.pendingCount > 0 && (
+                  <span className="ledger-sub">
+                    {totals.pendingCount} {totals.pendingCount === 1 ? "booking" : "bookings"}
+                  </span>
+                )}
               </div>
             </div>
           </section>
 
-          <div className="segmented view-switch">
-            <button className={`segmented-btn ${!groupByClient ? "active" : ""}`} onClick={() => setGroupByClient(false)}>
-              By month
-            </button>
-            <button className={`segmented-btn ${groupByClient ? "active" : ""}`} onClick={() => setGroupByClient(true)}>
-              By client
-            </button>
+          <div className="ledger-head">
+            <h2 className="ledger-title">{groupByClient ? "By client" : "Monthly ledger"}</h2>
+            <div className="segmented view-switch" role="tablist" aria-label="Group earnings">
+              <button role="tab" aria-selected={!groupByClient} className={`segmented-btn ${!groupByClient ? "active" : ""}`} onClick={() => setGroupByClient(false)}>
+                Month
+              </button>
+              <button role="tab" aria-selected={groupByClient} className={`segmented-btn ${groupByClient ? "active" : ""}`} onClick={() => setGroupByClient(true)}>
+                Client
+              </button>
+            </div>
           </div>
 
           {!groupByClient && monthGroups.length > 0 && (
@@ -126,10 +147,12 @@ export function PaymentsPage() {
               return (
                 <section key={g.key} className={`month-row ${isOpen ? "open" : ""}`}>
                   <button className="month-row-head" onClick={() => toggleMonth(g.key)} aria-expanded={isOpen}>
-                    <span className="month-row-name">{monthLabel(g.year, g.month)}</span>
+                    <span className="month-row-name">
+                      {monthLabel(g.year, g.month)}
+                      {g.due > 0 && <span className="month-row-due">{formatCurrency(g.due)} due</span>}
+                    </span>
                     <span className="month-row-figures">
                       <span>{formatCurrency(g.total)}</span>
-                      {g.due > 0 && <span className="due">{formatCurrency(g.due)} due</span>}
                     </span>
                     <ChevronDown size={18} strokeWidth={1.4} className="month-row-chevron" />
                   </button>

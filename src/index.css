@@ -4165,3 +4165,84 @@ html { scrollbar-gutter: stable; }
 }
 .quote-line-amount { font-weight: 600; color: var(--ink); white-space: nowrap; }
 .quote-custom { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto; gap: 8px; margin-top: 12px; }
+
+/* ---------- Earnings: finance styling ----------
+   Numbers are the content here, so the page drops the display serif for a
+   neutral sans with even-width digits. Scoped to this page only. */
+.earnings-page {
+  --font-fin: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-fin);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.earnings-page .page-title {
+  font-family: var(--font-fin);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.earnings-page .page-head { align-items: center; }
+
+/* year filter pill */
+.year-pill .picker-field {
+  width: auto;
+  min-height: 44px;
+  padding: 0 14px 0 18px;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(63, 23, 21, 0.18);
+  background: transparent;
+  font-family: var(--font-fin);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.year-pill .picker-field svg { color: var(--ink-3); width: 16px; height: 16px; }
+
+/* summary card */
+.earnings-page .ledger.pinned {
+  padding: 22px 22px 24px;
+  border-radius: 18px;
+}
+.earnings-page .ledger-figure {
+  font-family: var(--font-fin);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.01em;
+  margin-top: 10px;
+}
+.earnings-page .ledger.pinned .ledger-label { color: rgba(251, 243, 234, 0.82); font-size: 15px; }
+.earnings-page .ledger-split .ledger-label {
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+.earnings-page .ledger-value { font-family: var(--font-fin); font-weight: 400; font-size: 24px; display: block; }
+.earnings-page .ledger-sub { display: block; margin-top: 8px; font-size: 14px; color: rgba(251, 243, 234, 0.7); }
+.earnings-page .ledger-bar { height: 6px; margin: 18px 0 22px; border-radius: 999px; }
+.earnings-page .ledger-bar span { border-radius: 999px; }
+
+/* section head: title left, Month / Client right */
+.ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 12px;
+}
+.ledger-title {
+  margin: 0;
+  font-family: var(--font-fin);
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--ink);
+}
+.earnings-page .view-switch { margin: 0; width: auto; flex: none; }
+.earnings-page .view-switch .segmented-btn { padding: 0 16px; font-family: var(--font-fin); }
+
+/* month rows */
+.earnings-page .month-row-head { padding: 18px 20px; min-height: 64px; }
+.earnings-page .month-row-name { font-weight: 600; font-size: 17px; display: flex; flex-direction: column; gap: 6px; }
+.month-row-due { font-weight: 400; font-size: 14px; color: var(--due); }
+.earnings-page .month-row-figures { font-size: 18px; font-weight: 600; }
+.earnings-page .client-heading { font-family: var(--font-fin); }
+.earnings-page .booking { font-family: var(--font-fin); }
