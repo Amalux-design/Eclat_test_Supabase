@@ -4299,3 +4299,37 @@ html { scrollbar-gutter: stable; }
   font-weight: 400;
   font-size: 22px;
 }
+
+/* Photo viewer: arrows and count as one frosted pill */
+.photo-viewer-nav {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.photo-viewer-step { width: 44px; height: 44px; background: transparent; }
+.photo-viewer-step:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
+.photo-viewer-step:disabled { opacity: 0.25; pointer-events: none; }
+.photo-viewer .photo-viewer-nav .photo-viewer-count { min-width: 64px; color: #fff; font-size: 15px; }
+
+/* Quote: quiet outline pill, same as the Earnings year filter */
+.page-head .quote-btn {
+  min-height: 44px;
+  padding: 0 18px 0 14px;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(63, 23, 21, 0.18);
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: none;
+}
+.page-head .quote-btn svg { color: var(--ink-3); }
+
+/* + New: frosted glass only, no tint */
+.fab {
+  background: transparent;
+}
