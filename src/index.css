@@ -4254,3 +4254,31 @@ html { scrollbar-gutter: stable; }
 .earnings-page .ledger.pinned .ledger-figure { font-weight: 400; font-size: 36px; letter-spacing: -0.01em; }
 .earnings-page .ledger.pinned .ledger-value { font-weight: 400; font-size: 24px; }
 .earnings-page .page-title { font-family: var(--font-title); }
+
+/* photo viewer: previous / next under the photo (mouse, keyboard, touch) */
+.photo-viewer { padding-bottom: calc(84px + var(--safe-bottom)); }
+.photo-viewer-nav {
+  position: absolute;
+  left: 50%;
+  bottom: calc(16px + var(--safe-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.photo-viewer-nav .photo-viewer-count { position: static; margin: 0; min-width: 52px; text-align: center; }
+.photo-viewer-step {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+}
+.photo-viewer-step:hover:not(:disabled) { background: rgba(255, 255, 255, 0.24); }
+.photo-viewer-step:active:not(:disabled) { transform: scale(0.92); }
+.photo-viewer-step:disabled { opacity: 0.3; cursor: default; }

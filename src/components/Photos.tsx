@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ImagePlus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, X } from "lucide-react";
 import type { BookingPhoto } from "../types";
 import { api } from "../api/client";
 
@@ -152,9 +152,27 @@ function PhotoViewer({ photos, start, onClose }: { photos: BookingPhoto[]; start
         <X size={22} strokeWidth={2} />
       </button>
       {photos.length > 1 && (
-        <p className="photo-viewer-count">
-          {index + 1} of {photos.length}
-        </p>
+        <div className="photo-viewer-nav" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="photo-viewer-step"
+            onClick={() => setIndex((i) => Math.max(0, i - 1))}
+            disabled={index === 0}
+            aria-label="Previous photo"
+          >
+            <ChevronLeft size={22} strokeWidth={2} />
+          </button>
+          <p className="photo-viewer-count">
+            {index + 1} of {photos.length}
+          </p>
+          <button
+            className="photo-viewer-step"
+            onClick={() => setIndex((i) => Math.min(photos.length - 1, i + 1))}
+            disabled={index === photos.length - 1}
+            aria-label="Next photo"
+          >
+            <ChevronRight size={22} strokeWidth={2} />
+          </button>
+        </div>
       )}
     </div>,
     document.body
