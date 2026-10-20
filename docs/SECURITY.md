@@ -15,10 +15,14 @@ What protects the data, and what the owner/developer must do once.
    - Blocks sign-ups for emails not in `members` (even via the API).
    - Blocks changing a login email through the API (prevents taking over an invited admin's role).
    - Test: in the app, "First time? Create password" with an un-added email → "This email isn't on the Éclat team yet".
+1b. **Delete for removed members** — paste `supabase/archive-members.sql` → Run (adds `members.archived` + owner-only `archive_member`). Required by the app's Team access list.
 2. **Live revoke** — SQL Editor: `alter publication supabase_realtime add table public.members;` (an "already member" error is fine).
 3. **Make the GitHub repo private** — github.com/Amalux-design/Eclat_test_Supabase → Settings → General → Danger Zone → Change visibility → Private. Vercel keeps deploying (it's connected through the GitHub app).
 4. **Supabase Auth settings** — Authentication → Sign In / Providers → Email: keep "Confirm email" OFF. Authentication → URL Configuration → Site URL = `https://eclatsupabasetest.vercel.app`.
 5. **Accounts** — 2-Step Verification on the Google account(s) used for Supabase, Vercel, GitHub and the owner's login email. Strong unique passwords.
+
+## Why "Delete" archives instead of deleting rows
+Supabase live updates don't apply row-level security to DELETE events, so hard-deleting a `members` row would broadcast that email to every signed-in device. `archive_member` hides the row, removes access and deletes the person's login instead.
 
 ## Login emails
 - Use real emails the person controls (best), or a reserved non-existent domain such as `name@eclat.invalid`.

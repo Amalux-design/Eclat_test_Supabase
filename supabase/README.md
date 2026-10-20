@@ -48,7 +48,8 @@ the new password; they can change it in the app (Account → Change password).
 
 Supabase → **SQL Editor** → paste `supabase/hardening.sql` → **Run**. The
 database then refuses sign-ups for emails not on the team and blocks login
-email changes through the API. Full checklist: `docs/SECURITY.md`.
+email changes through the API. Then also run `supabase/archive-members.sql`
+(the "Delete" button for removed people). Full checklist: `docs/SECURITY.md`.
 
 ## 3. Move the existing bookings (optional)
 

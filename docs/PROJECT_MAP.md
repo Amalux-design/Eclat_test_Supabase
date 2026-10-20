@@ -26,7 +26,7 @@ Verified against the code on 2026-10-20.
 | Scripts | `scripts/sheet-to-sql.mjs` (old Sheet CSV → SQL import), `scripts/backup-apps-script.gs` (daily Google Sheets backup) |
 
 ## Data model (Postgres, RLS on all tables)
-- `members(email PK, name, role owner|admin|team, active)` — who may use the app.
+- `members(email PK, name, role owner|admin|team, active, archived)` — who may use the app; "Delete" = `archive_member()` (hide + remove login), never a row delete.
 - `bookings` — fields everyone on the team may see (date, client name, services text, event, venue, bridesmaids, status, times, team notes).
 - `booking_private` — phones, qty/price/amount, paid amount, payment status, referral, "Notes for me". Admin/owner only.
 - `booking_photos` — storage paths + `work_date` (kept in sync with the booking date by trigger).

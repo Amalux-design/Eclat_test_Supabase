@@ -249,7 +249,7 @@ export const api = {
   },
 
   async listMembers(): Promise<Member[]> {
-    const { data, error } = await supabase.from("members").select("*").order("created_at");
+    const { data, error } = await supabase.from("members").select("*").eq("archived", false).order("created_at");
     if (error) throw toApiError(error, "Couldn't load the team.");
     return (data ?? []).map((m) => ({
       email: m.email,
@@ -263,13 +263,14 @@ export const api = {
   async saveMember(m: { email: string; name: string; role: Role; active: boolean }): Promise<void> {
     const { error } = await supabase
       .from("members")
-      .upsert({ email: m.email.trim().toLowerCase(), name: m.name.trim(), role: m.role, active: m.active });
+      .upsert({ email: m.email.trim().toLowerCase(), name: m.name.trim(), role: m.role, active: m.active, archived: false });
     if (error) throw toApiError(error, "Couldn't save the team member.");
   },
 
+  /** Owner only: hide a removed member from the list and delete their login (see supabase/archive-members.sql). */
   async deleteMember(email: string): Promise<void> {
-    const { error } = await supabase.from("members").delete().eq("email", email.toLowerCase());
-    if (error) throw toApiError(error, "Couldn't remove the team member.");
+    const { error } = await supabase.rpc("archive_member", { p_email: email.toLowerCase() });
+    if (error) throw toApiError(error, "Couldn't delete the team member.");
   },
 };
 

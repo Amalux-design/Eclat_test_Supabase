@@ -123,6 +123,22 @@ export function SignIn() {
 /** Signed in, but not on the team (or access was removed). */
 export function NoAccess() {
   const { email, signOut, recheck } = useAuth();
+  const [checking, setChecking] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  // If access is back, this screen disappears on its own; if not, say so.
+  async function checkAgain() {
+    setChecking(true);
+    setNote(null);
+    try {
+      await recheck();
+      setNote(`Still no access for ${email}. Ask Harsha to add or restore you, then check again.`);
+    } catch {
+      setNote("Couldn't check. Check your connection and try again.");
+    } finally {
+      setChecking(false);
+    }
+  }
   return (
     <div className="gate">
       <Wordmark size="lg" />
@@ -131,7 +147,10 @@ export function NoAccess() {
         <p className="gate-text">
           {email} isn't on the Éclat team, or access was removed. Ask Harsha to add you, then tap Check again.
         </p>
-        <button className="primary-btn" onClick={() => void recheck()}>Check again</button>
+        {note && <p className="gate-message" role="status">{note}</p>}
+        <button className="primary-btn" onClick={() => void checkAgain()} disabled={checking}>
+          {checking ? "Checking…" : "Check again"}
+        </button>
         <button className="text-btn" onClick={() => void signOut()}>Sign out</button>
       </div>
     </div>

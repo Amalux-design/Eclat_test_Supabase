@@ -81,6 +81,25 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function deleteForGood(m: Member) {
+    if (
+      !(await confirm({
+        title: `Delete ${m.name || m.email}?`,
+        message: "They disappear from this list and their login is removed. To give access again later, add them as new.",
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
+    )
+      return;
+    try {
+      await api.deleteMember(m.email);
+      notify("Deleted.");
+      await load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Couldn't delete.", "error");
+    }
+  }
+
   async function changeRole(m: Member, next: Role) {
     try {
       await api.saveMember({ ...m, role: next });
@@ -227,6 +246,11 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                           >
                             {m.active ? "Remove" : "Restore"}
                           </button>
+                          {!m.active && (
+                            <button className="text-btn member-toggle danger" onClick={() => void deleteForGood(m)}>
+                              Delete
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
