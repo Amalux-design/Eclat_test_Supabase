@@ -29,9 +29,11 @@ export function writeLogsCache(admin: boolean, logs: WorkLog[], version: string)
   }
 }
 
-export function clearAdminCache(): void {
+/** Sign-out: remove every cached booking list (admin and team) from this device. */
+export function clearAllCaches(): void {
   try {
     localStorage.removeItem(cacheKey(true));
+    localStorage.removeItem(cacheKey(false));
   } catch {
     // nothing to clear
   }

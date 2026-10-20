@@ -44,6 +44,12 @@ password recovery** won't work without email setup, so instead:
 **⋯ → Edit user** (or "Update user") → set a new password → Save. Tell them
 the new password; they can change it in the app (Account → Change password).
 
+## 2b. Harden logins (required)
+
+Supabase → **SQL Editor** → paste `supabase/hardening.sql` → **Run**. The
+database then refuses sign-ups for emails not on the team and blocks login
+email changes through the API. Full checklist: `docs/SECURITY.md`.
+
 ## 3. Move the existing bookings (optional)
 
 1. In the old Google Sheet, open the `WORK_LOGS` tab → **File → Download →

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { api } from "../api/client";
-import { clearAdminCache } from "../utils/localCache";
+import { clearAllCaches } from "../utils/localCache";
 import type { Role } from "../types";
 
 // Everyone signs in with their email and a password. What they can see
@@ -86,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       if (/already registered|already exists/i.test(error.message))
         throw new Error("This email already has a password. Use Sign in instead.");
+      if (/NOT_INVITED|database error saving new user/i.test(error.message))
+        throw new Error("This email isn't on the Éclat team yet. Ask Harsha to add it first.");
       if (/password/i.test(error.message)) throw new Error("Choose a longer password (at least 8 characters).");
       throw new Error("Couldn't create the password. Check your connection and try again.");
     }
@@ -99,7 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    clearAdminCache();
+    // Shared devices: leave no schedule or client data behind.
+    clearAllCaches();
     // "local" clears this device's login without needing the server to accept
     // the old token. A long-open laptop tab with an expired session otherwise
     // fails the server call, keeps the login, and nothing seems to happen.

@@ -21,9 +21,9 @@ export function CalendarPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   // False on arrival, true once a different day has been picked.
-  const firstDate = useRef(selectedDate);
-  const dateChanged = useRef(false);
-  if (selectedDate !== firstDate.current) dateChanged.current = true;
+  const [firstDate] = useState(selectedDate);
+  const [dateChanged, setDateChanged] = useState(false);
+  if (!dateChanged && selectedDate !== firstDate) setDateChanged(true);
   const [adding, setAdding] = useState(false);
   const [converting, setConverting] = useState<WorkLog | null>(null);
   const [editing, setEditing] = useState<WorkLog | null>(null);
@@ -216,7 +216,7 @@ export function CalendarPage() {
 
       <section
         key={selectedDate}
-        className={`agenda ${dateChanged.current ? "date-changed" : ""}`}
+        className={`agenda ${dateChanged ? "date-changed" : ""}`}
         aria-live="polite"
       >
         <header className="agenda-head">
