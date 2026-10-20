@@ -4375,3 +4375,51 @@ html { scrollbar-gutter: stable; }
   font-weight: 600;
   font-size: 18px;
 }
+
+/* Booking form: payment as a small bill — services (auto) + extra (typed) = total */
+.bill {
+  background: var(--surface);
+  border-radius: var(--r-group);
+  padding: 4px 16px;
+  margin-bottom: 6px;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.bill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  font-size: 16px;
+  color: var(--ink);
+}
+.bill-row + .bill-row { border-top: 0.5px solid var(--separator); }
+.bill-figure { font-weight: 600; font-size: 17px; }
+.bill-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 132px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  background: var(--cream);
+  border: 1px solid var(--separator);
+  color: var(--ink-2);
+}
+.bill-input:focus-within { box-shadow: 0 0 0 2px var(--gilt); }
+.bill-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  outline: none;
+}
+.bill-total { min-height: 60px; }
+.bill-total span:first-child { font-family: var(--font-title); font-weight: 600; font-size: 19px; color: var(--oxblood); }
+.bill-total .bill-figure { font-size: 22px; color: var(--oxblood); }

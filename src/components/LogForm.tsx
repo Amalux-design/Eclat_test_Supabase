@@ -260,29 +260,36 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
           <fieldset className="form-section">
             <legend>Payment</legend>
-            <div className="amount-auto">
-              <span>Services total</span>
-              <span>{formatCurrency(menuTotal)}</span>
+            <div className="bill">
+              <div className="bill-row">
+                <span>Services total</span>
+                <span className="bill-figure">{formatCurrency(menuTotal)}</span>
+              </div>
+              <div className="bill-row">
+                <label htmlFor="f-extra">{menuTotal > 0 ? "Extra" : "Amount"}</label>
+                <span className="bill-input">
+                  <span aria-hidden="true">₹</span>
+                  <input
+                    id="f-extra"
+                    type="text"
+                    inputMode="numeric"
+                    value={extra}
+                    onChange={(e) => setExtra(e.target.value.replace(/[^\d-]/g, ""))}
+                    placeholder="0"
+                    aria-describedby="f-extra-hint"
+                  />
+                </span>
+              </div>
+              <div className="bill-row bill-total">
+                <span>Total</span>
+                <span className="bill-figure">{formatCurrency(Number(amount))}</span>
+              </div>
             </div>
-            <label className="field-label" htmlFor="f-extra">
-              {menuTotal > 0 ? "Extra amount" : "Amount"}
-            </label>
-            <input
-              id="f-extra"
-              type="text"
-              inputMode="numeric"
-              className="field-input field-amount"
-              value={extra}
-              onChange={(e) => setExtra(e.target.value.replace(/[^\d-]/g, ""))}
-              placeholder={menuTotal > 0 ? "0 (travel, extensions…)" : "0"}
-            />
-            {menuTotal > 0 && (
-              <p className="field-hint">Added to the services total. Use a minus for a discount, e.g. -2000.</p>
-            )}
-            <div className="amount-auto amount-total">
-              <span>Total</span>
-              <span>{formatCurrency(Number(amount))}</span>
-            </div>
+            <p id="f-extra-hint" className="field-hint">
+              {menuTotal > 0
+                ? "Extra is added to the services, e.g. travel or extensions. Use a minus for a discount: -2000."
+                : "Type the full amount for this booking."}
+            </p>
 
             <div className="segmented">
               <button type="button" className={`segmented-btn ${paymentStatus === "PENDING" ? "active" : ""}`} onClick={() => setPaymentStatus("PENDING")}>
