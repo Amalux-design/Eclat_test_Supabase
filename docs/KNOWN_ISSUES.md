@@ -4,8 +4,8 @@ Status as of 2026-10-20. "Verified" = checked in code/state; "Open" = needs a de
 
 ## Owner actions pending (Open)
 1. **GitHub repo is public** (Amalux-design/Eclat_test_Supabase). No keys or client data in it, but studio UPI/bank details (`src/data/business.ts`) are in history. Make it private — see `docs/SECURITY.md`. (Those details are also printed on invoices and are inside the public JS bundle, so exposure is low.)
-2. **Run `supabase/hardening.sql`** in Supabase (blocks uninvited sign-ups and API email changes).
-3. **Members realtime:** `alter publication supabase_realtime add table public.members;` must have been run for instant revoke.
+2. ~~Run `supabase/hardening.sql`~~ — installed 2026-10-20 (fixed `session_user` version confirmed). In-app test of refusal/sign-in still to be confirmed by owner.
+3. ~~Members realtime publication~~ — run 2026-10-20.
 4. **Typo owner row** `heyamalux@gmail.com.com` should be deleted if still present.
 
 ## Product gaps (Open)
