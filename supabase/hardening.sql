@@ -17,12 +17,14 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $$ 
 begin
   -- Only requests coming through Supabase's login API (sign-up, magic link,
   -- email change, dashboard user tools) run as supabase_auth_admin. The SQL
   -- Editor runs as postgres and stays unrestricted for the owner/developer.
-  if current_user <> 'supabase_auth_admin' then
+  -- session_user, not current_user: inside a SECURITY DEFINER function
+  -- current_user is the function owner (postgres), which would skip every check.
+  if session_user <> 'supabase_auth_admin' then
     return new;
   end if;
 
