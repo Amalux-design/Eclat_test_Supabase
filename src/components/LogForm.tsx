@@ -36,7 +36,15 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
   const [typedAmount, setTypedAmount] = useState(initial ? String(initial.amount || "") : "");
-  const [amountTouched, setAmountTouched] = useState(Boolean(initial));
+  // Editing: keep adding up the services unless the saved amount was a custom
+  // one (e.g. a discount). Then it stays, with "Use menu total" to switch back.
+  const [amountTouched, setAmountTouched] = useState(() => {
+    if (!initial) return false;
+    const savedMenuTotal = parseWorks(initial.work)
+      .map(splitQty)
+      .reduce((sum, w) => sum + (servicePrice(w.name) ?? 0) * w.qty, 0);
+    return savedMenuTotal === 0 || initial.amount !== savedMenuTotal;
+  });
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initial?.paymentStatus ?? "PENDING");
   const [own, setOwn] = useState(initial?.own ?? true);
   const [referrerName, setReferrerName] = useState(initial?.referrerName ?? "");
