@@ -144,7 +144,7 @@ export function saveInvoice(log: WorkLog): Promise<void> {
 }
 
 export function saveDocument(d: DocData): Promise<void> {
-  return withBusy(d.kind === "quote" ? "Preparing quotation" : "Preparing invoice", () => buildDocument(d));
+  return withBusy(d.kind === "quote" ? "Preparing proposal" : "Preparing invoice", () => buildDocument(d));
 }
 
 /* ---------- the PDF ---------- */
@@ -172,7 +172,7 @@ async function buildDocument(d: DocData): Promise<void> {
   doc.setFont("times", "normal");
   doc.setFontSize(22);
   doc.setTextColor(...WINE);
-  doc.text(quote ? "Quotation" : "Invoice", R, y + 6, { align: "right" });
+  doc.text(quote ? "The Beauty Proposal" : "Invoice", R, y + 6, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...SOFT);
@@ -415,7 +415,7 @@ async function buildDocument(d: DocData): Promise<void> {
   }
 
   const safeName = (d.clientName || "client").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
-  const fileName = `${quote ? "Quotation" : "Invoice"}-${d.number}-${safeName}.pdf`;
+  const fileName = `${quote ? "Proposal" : "Invoice"}-${d.number}-${safeName}.pdf`;
   await deliver(doc.output("blob"), fileName, () => doc.save(fileName));
 }
 
