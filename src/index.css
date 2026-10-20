@@ -4437,3 +4437,7 @@ html { scrollbar-gutter: stable; }
 }
 .modal-header .save-pill:disabled { opacity: 0.45; }
 .modal-header .save-pill:active { opacity: 0.6; transform: none; }
+
+/* Paid badge: check mark before the word */
+.pill-paid { display: inline-flex; align-items: center; gap: 4px; }
+.pill-paid svg { flex: none; margin-left: -1px; }
