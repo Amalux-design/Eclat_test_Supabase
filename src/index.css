@@ -8,7 +8,7 @@
   --surface: #ffffff;
   --ink: #3f1715;
   --ink-2: #6e5446;
-  --ink-3: #9a8576;
+  --ink-3: #806a5a; /* 4.6:1 on cream (was #9a8576, 3.2:1) */
   --separator: rgba(63, 23, 21, 0.12);
   --fill: rgba(120, 101, 75, 0.1);
   --oxblood: #420c15;
@@ -4333,3 +4333,27 @@ html { scrollbar-gutter: stable; }
 .fab {
   background: transparent;
 }
+
+/* ---------- accessibility pass ----------
+   Focus ring on fields visible against cream (gilt ≈3.7:1; gilt-soft was 1.8:1). */
+.field-input:focus,
+.field-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--gilt);
+}
+
+/* Small controls keep their look but get a ≥44px invisible touch area. */
+/* (.photo-remove and .search-pill-icon are already absolutely positioned,
+   which anchors their ::after; only static ones need relative.) */
+.tile-stepper button,
+.install-hint-close {
+  position: relative;
+}
+.photo-remove::after,
+.tile-stepper button::after,
+.search-pill.open .search-pill-icon::after,
+.install-hint-close::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+.photo-remove::after { inset: -10px; }
