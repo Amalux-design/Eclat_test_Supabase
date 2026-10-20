@@ -100,8 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     clearAdminCache();
-    await supabase.auth.signOut();
-  }, []);
+    // "local" clears this device's login without needing the server to accept
+    // the old token. A long-open laptop tab with an expired session otherwise
+    // fails the server call, keeps the login, and nothing seems to happen.
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      /* fall through: clear the stored login ourselves */
+    }
+    for (const k of Object.keys(localStorage)) {
+      if (k.startsWith("sb-") && k.includes("-auth-token")) localStorage.removeItem(k);
+    }
+    await resolve(null);
+  }, [resolve]);
 
   const recheck = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
