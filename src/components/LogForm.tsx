@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, Minus, Plus } from "lucide-react";
 import type { BookingPhoto, PaymentStatus, PhotoChanges, WorkLog, WorkLogInput, WorkStatus } from "../types";
-import { formatCurrency, isPastOrToday, isValidPhone, joinWorks, normalizePhone, parseWorks, splitQty, todayISO, withQty } from "../utils/format";
+import { formatCurrency, isValidPhone, joinWorks, normalizePhone, parseWorks, splitQty, todayISO, withQty } from "../utils/format";
 import { ServiceTiles } from "./ServiceTiles";
 import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
@@ -91,8 +91,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     setCustomWork("");
   }
 
-  const autoStatus: WorkStatus = isPastOrToday(date) ? "WORKED" : "RESERVED";
-  const effectiveStatus = forceStatus ?? statusOverride ?? autoStatus;
+  // New bookings start as Booked; "Done" is set later (here or "Mark as done").
+  const effectiveStatus: WorkStatus = forceStatus ?? statusOverride ?? "RESERVED";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
