@@ -337,7 +337,8 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.setFontSize(14);
     doc.setTextColor(...WINE);
     doc.text(balance > 0 ? "Balance due" : "Paid in full", labelX, y);
-    doc.text(money(Math.max(balance, 0)), R, y, { align: "right" });
+    // Paid in full shows the amount paid, not "Rs. 0", so it reads at a glance.
+    doc.text(money(balance > 0 ? balance : received), R, y, { align: "right" });
     doc.setFont("helvetica", "normal");
   }
 
