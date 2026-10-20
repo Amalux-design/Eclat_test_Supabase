@@ -35,15 +35,15 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [bridesmaids, setBridesmaids] = useState(initial?.bridesmaids ?? 0);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
-  const [typedAmount, setTypedAmount] = useState(initial ? String(initial.amount || "") : "");
-  // Editing: keep adding up the services unless the saved amount was a custom
-  // one (e.g. a discount). Then it stays, with "Use menu total" to switch back.
-  const [amountTouched, setAmountTouched] = useState(() => {
-    if (!initial) return false;
+  // Amount = services total (automatic, from the tiles) + extra (typed by hand,
+  // may be negative for a discount). Editing: extra = saved amount − services total.
+  const [extra, setExtra] = useState(() => {
+    if (!initial) return "";
     const savedMenuTotal = parseWorks(initial.work)
       .map(splitQty)
       .reduce((sum, w) => sum + (servicePrice(w.name) ?? 0) * w.qty, 0);
-    return savedMenuTotal === 0 || initial.amount !== savedMenuTotal;
+    const diff = initial.amount - savedMenuTotal;
+    return diff ? String(diff) : "";
   });
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initial?.paymentStatus ?? "PENDING");
   const [own, setOwn] = useState(initial?.own ?? true);
@@ -67,12 +67,13 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     };
   }, []);
 
-  // Menu prices add up into the amount until the amount is edited by hand.
+  // Menu prices add up automatically.
   const menuTotal = useMemo(
     () => works.reduce((sum, w) => sum + (servicePrice(w.name) ?? 0) * w.qty, 0),
     [works]
   );
-  const amount = amountTouched ? typedAmount : menuTotal ? String(menuTotal) : "";
+  const extraNum = Number(extra.replace(/[^\d.-]/g, "")) || 0;
+  const amount = String(Math.max(0, menuTotal + extraNum));
 
   function setWorkQty(name: string, qty: number) {
     setWorks((prev) => {
@@ -259,25 +260,29 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
           <fieldset className="form-section">
             <legend>Payment</legend>
-            <label className="field-label" htmlFor="f-amount">Amount</label>
+            <div className="amount-auto">
+              <span>Services total</span>
+              <span>{formatCurrency(menuTotal)}</span>
+            </div>
+            <label className="field-label" htmlFor="f-extra">
+              {menuTotal > 0 ? "Extra amount" : "Amount"}
+            </label>
             <input
-              id="f-amount"
-              type="number"
+              id="f-extra"
+              type="text"
               inputMode="numeric"
-              min="0"
               className="field-input field-amount"
-              value={amount}
-              onChange={(e) => {
-                setAmountTouched(true);
-                setTypedAmount(e.target.value);
-              }}
-              placeholder="0"
+              value={extra}
+              onChange={(e) => setExtra(e.target.value.replace(/[^\d-]/g, ""))}
+              placeholder={menuTotal > 0 ? "0 (travel, extensions…)" : "0"}
             />
-            {amountTouched && menuTotal > 0 && Number(amount) !== menuTotal && (
-              <button type="button" className="link-btn" onClick={() => setAmountTouched(false)}>
-                Use menu total, {formatCurrency(menuTotal)}
-              </button>
+            {menuTotal > 0 && (
+              <p className="field-hint">Added to the services total. Use a minus for a discount, e.g. -2000.</p>
             )}
+            <div className="amount-auto amount-total">
+              <span>Total</span>
+              <span>{formatCurrency(Number(amount))}</span>
+            </div>
 
             <div className="segmented">
               <button type="button" className={`segmented-btn ${paymentStatus === "PENDING" ? "active" : ""}`} onClick={() => setPaymentStatus("PENDING")}>

@@ -4357,3 +4357,21 @@ html { scrollbar-gutter: stable; }
   inset: -8px;
 }
 .photo-remove::after { inset: -10px; }
+
+/* Booking form: automatic services total + manual extra = total */
+.amount-auto {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 4px;
+  color: var(--ink-2);
+  font-size: 16px;
+}
+.amount-total {
+  margin: 6px 0 12px;
+  border-top: 0.5px solid var(--separator);
+  padding-top: 12px;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 18px;
+}
