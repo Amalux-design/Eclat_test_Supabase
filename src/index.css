@@ -4490,3 +4490,12 @@ html { scrollbar-gutter: stable; }
 @media (prefers-reduced-motion: reduce) {
   .fab svg { animation: none; }
 }
+
+/* + New uses the bottom bar's frosted glass, so it stays readable over the
+   wine "Today" panel (a fully clear background turned it wine-on-wine). */
+.fab {
+  background: rgba(255, 252, 248, 0.6);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  box-shadow: 0 10px 30px rgba(63, 23, 21, 0.16), 0 0 0 0.5px rgba(63, 23, 21, 0.08);
+}
