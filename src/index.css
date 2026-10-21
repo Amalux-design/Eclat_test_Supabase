@@ -4479,3 +4479,14 @@ html { scrollbar-gutter: stable; }
   .fab::after { display: none; }
   .fab span { animation: none; -webkit-text-fill-color: currentColor; background: none; }
 }
+
+/* The + icon catches the same glint (it's an icon, not text, so it flashes). */
+.fab svg { animation: fab-plus-glint 6s ease-in-out 2s infinite; }
+@keyframes fab-plus-glint {
+  0%, 80% { color: currentColor; }
+  86% { color: #fff6ea; }
+  94%, 100% { color: currentColor; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab svg { animation: none; }
+}
