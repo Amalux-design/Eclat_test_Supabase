@@ -4442,26 +4442,40 @@ html { scrollbar-gutter: stable; }
 .pill-paid { display: inline-flex; align-items: center; gap: 4px; }
 .pill-paid svg { flex: none; margin-left: -1px; }
 
-/* + New: a soft light sweep every few seconds so it stays findable over the
-   wine "Today" panel. Purely decorative; off with reduced motion. */
-.fab {
-  overflow: hidden;
-  isolation: isolate;
-}
+/* + New: every few seconds a light glint runs along the outline and through
+   the word only (the pill's fill stays as is), so it's findable over the
+   wine "Today" panel. Off with reduced motion. */
+.fab { isolation: isolate; }
 .fab::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -1.5px;                 /* sit exactly on the 1.5px border */
+  padding: 1.5px;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255, 248, 238, 0.85) 50%, transparent 70%);
-  transform: translateX(-120%);
-  animation: fab-shimmer 6s ease-in-out 2s infinite;
+  background: linear-gradient(105deg, transparent 40%, #fff6ea 50%, transparent 60%) no-repeat;
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  /* show only the ring: full box minus the content box */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: fab-glint 6s ease-in-out 2s infinite;
 }
-@keyframes fab-shimmer {
-  0%, 78% { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
+.fab span {
+  background: linear-gradient(105deg, currentColor 40%, #fff6ea 50%, currentColor 60%) no-repeat;
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fab-glint 6s ease-in-out 2s infinite;
+}
+@keyframes fab-glint {
+  0%, 78% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fab::after { animation: none; display: none; }
+  .fab::after { display: none; }
+  .fab span { animation: none; -webkit-text-fill-color: currentColor; background: none; }
 }
