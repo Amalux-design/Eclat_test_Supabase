@@ -266,15 +266,30 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 <span className="bill-figure">{formatCurrency(menuTotal)}</span>
               </div>
               <div className="bill-row">
-                <label htmlFor="f-extra">{menuTotal > 0 ? "Extra" : "Amount"}</label>
+                <label htmlFor="f-extra">
+                  {menuTotal === 0 ? "Amount" : extra.startsWith("-") ? "Discount" : "Extra"}
+                </label>
+                {menuTotal > 0 && (
+                  <button
+                    type="button"
+                    className={`bill-sign ${extra.startsWith("-") ? "minus" : ""}`}
+                    onClick={() => setExtra((v) => (v.startsWith("-") ? v.slice(1) : "-" + v))}
+                    aria-label={extra.startsWith("-") ? "Switch to extra (add)" : "Switch to discount (subtract)"}
+                  >
+                    {extra.startsWith("-") ? "−" : "+"}
+                  </button>
+                )}
                 <span className="bill-input">
                   <span aria-hidden="true">₹</span>
                   <input
                     id="f-extra"
                     type="text"
                     inputMode="numeric"
-                    value={extra}
-                    onChange={(e) => setExtra(e.target.value.replace(/[^\d-]/g, ""))}
+                    value={extra.replace("-", "")}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setExtra((v) => (v.startsWith("-") ? "-" : "") + digits);
+                    }}
                     placeholder="0"
                     aria-describedby="f-extra-hint"
                   />
@@ -287,7 +302,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
             </div>
             <p id="f-extra-hint" className="field-hint">
               {menuTotal > 0
-                ? "Extra is added to the services, e.g. travel or extensions. Use a minus for a discount: -2000."
+                ? "Tap + / − to add an extra (travel, extensions) or take off a discount."
                 : "Type the full amount for this booking."}
             </p>
 
