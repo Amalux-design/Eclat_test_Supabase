@@ -105,7 +105,7 @@ export function docTotal(d: Pick<DocData, "rows" | "extras">): number {
 function lineItems(log: WorkLog): DocRow[] {
   const services = parseWorks(log.work).map(splitQty);
   const priced: DocRow[] = services.map((s) => {
-    const rate = servicePrice(s.name) ?? 0;
+    const rate = servicePrice(s.name) ?? s.price ?? 0;
     return { label: s.name, rate, qty: s.qty, amount: rate * s.qty };
   });
   const menuTotal = priced.reduce((sum, l) => sum + l.amount, 0);

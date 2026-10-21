@@ -86,15 +86,33 @@ export function parseWorks(work: string): string[] {
     .filter(Boolean);
 }
 
-/** "2× Classic Bridal" → { name: "Classic Bridal", qty: 2 }. No prefix means 1. */
-export function splitQty(work: string): { name: string; qty: number } {
-  const m = /^(\d+)\s*[×xX]\s+(.+)$/.exec(work.trim());
-  return m ? { name: m[2].trim(), qty: Math.max(1, Number(m[1])) } : { name: work.trim(), qty: 1 };
+/**
+ * "2× Classic Bridal" → { name: "Classic Bridal", qty: 2 }. No prefix means 1.
+ * Off-menu items carry their own price: "7× Hairdo @2500" → price 2500.
+ */
+export function splitQty(work: string): { name: string; qty: number; price?: number } {
+  let t = work.trim();
+  let price: number | undefined;
+  const pm = /\s@(\d+)$/.exec(t);
+  if (pm) {
+    price = Number(pm[1]);
+    t = t.slice(0, pm.index).trim();
+  }
+  const m = /^(\d+)\s*[×xX]\s+(.+)$/.exec(t);
+  const base = m ? { name: m[2].trim(), qty: Math.max(1, Number(m[1])) } : { name: t, qty: 1 };
+  return price != null ? { ...base, price } : base;
 }
 
-/** Inverse of splitQty: quantity 1 is stored as the plain name. */
-export function withQty(name: string, qty: number): string {
-  return qty > 1 ? `${qty}× ${name}` : name;
+/** Inverse of splitQty: quantity 1 is the plain name; a price is stored as " @2500". */
+export function withQty(name: string, qty: number, price?: number): string {
+  const label = qty > 1 ? `${qty}× ${name}` : name;
+  return price ? `${label} @${price}` : label;
+}
+
+/** How a stored service reads on screen: "7× Hairdo" (the @price is hidden). */
+export function workLabel(work: string): string {
+  const w = splitQty(work);
+  return withQty(w.name, w.qty);
 }
 
 export function joinWorks(works: string[]): string {

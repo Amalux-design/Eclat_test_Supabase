@@ -28,7 +28,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
   const [altPhone, setAltPhone] = useState(initial?.altPhone ?? "");
   // Services in the order picked, each with a count ("2× Classic Bridal").
-  const [works, setWorks] = useState<{ name: string; qty: number }[]>(parseWorks(initial?.work ?? "").map(splitQty));
+  const [works, setWorks] = useState<{ name: string; qty: number; price?: number }[]>(parseWorks(initial?.work ?? "").map(splitQty));
+  const [customRate, setCustomRate] = useState("");
   const [customWork, setCustomWork] = useState("");
   const [eventType, setEventType] = useState(initial?.eventType ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
@@ -41,7 +42,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     if (!initial) return "";
     const savedMenuTotal = parseWorks(initial.work)
       .map(splitQty)
-      .reduce((sum, w) => sum + (servicePrice(w.name) ?? 0) * w.qty, 0);
+      .reduce((sum, w) => sum + (servicePrice(w.name) ?? w.price ?? 0) * w.qty, 0);
     const diff = initial.amount - savedMenuTotal;
     return diff ? String(diff) : "";
   });
@@ -57,7 +58,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<BookingPhoto[]>([]);
 
-  const customServices = works.filter((w) => !KNOWN_SERVICES.has(w.name)).map((w) => ({ name: w.name }));
+  const customServices = works.filter((w) => !KNOWN_SERVICES.has(w.name)).map((w) => ({ name: w.name, price: w.price }));
   const qtyByName = Object.fromEntries(works.map((w) => [w.name, w.qty]));
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
   // Menu prices add up automatically.
   const menuTotal = useMemo(
-    () => works.reduce((sum, w) => sum + (servicePrice(w.name) ?? 0) * w.qty, 0),
+    () => works.reduce((sum, w) => sum + (servicePrice(w.name) ?? w.price ?? 0) * w.qty, 0),
     [works]
   );
   const extraNum = Number(extra.replace(/[^\d.-]/g, "")) || 0;
@@ -87,7 +88,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   function addCustomWork() {
     const w = customWork.replace(/,/g, "").trim();
     if (!w) return;
-    setWorks((prev) => (prev.some((x) => x.name === w) ? prev : [...prev, { name: w, qty: 1 }]));
+    const price = Number(customRate.replace(/\D/g, "")) || undefined;
+    setWorks((prev) => (prev.some((x) => x.name === w) ? prev : [...prev, { name: w, qty: 1, price }]));
+    setCustomRate("");
     setCustomWork("");
   }
 
@@ -104,7 +107,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       document.getElementById("f-name")?.focus();
       return;
     }
-    const workValue = joinWorks(works.map((w) => withQty(w.name, w.qty)));
+    const workValue = joinWorks(works.map((w) => withQty(w.name, w.qty, KNOWN_SERVICES.has(w.name) ? undefined : w.price)));
     const amountNum = Math.max(0, Number(amount) || 0);
 
     const received = Math.min(Number(paidSoFar) || 0, amountNum);
@@ -229,7 +232,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
             <legend>Services</legend>
             <ServiceTiles qty={qtyByName} onChange={setWorkQty} custom={customServices} />
 
-            <div className="work-custom-row">
+            <div className="quote-custom">
               <input
                 className="field-input"
                 value={customWork}
@@ -240,10 +243,20 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                     addCustomWork();
                   }
                 }}
-                placeholder="Something else, e.g. Hair only"
+                placeholder="Something else, e.g. Hairdo"
                 aria-label="Add a custom service"
               />
-              <button type="button" className="ghost-btn" onClick={addCustomWork}>Add</button>
+              <input
+                className="field-input"
+                inputMode="numeric"
+                value={customRate}
+                onChange={(e) => setCustomRate(e.target.value.replace(/\D/g, ""))}
+                placeholder="Rate ₹"
+                aria-label="Custom service rate"
+              />
+              <button type="button" className="ghost-btn with-icon" onClick={addCustomWork}>
+                <Plus size={16} /> Add
+              </button>
             </div>
 
             <label className="field-label">Bridesmaids' makeup</label>

@@ -4,7 +4,7 @@ import type { WorkLog } from "../types";
 import { StatusPill } from "./StatusPill";
 import { PhotoStrip } from "./Photos";
 import { useAuth } from "../context/AuthContext";
-import { formatCurrency, formatTime, isMapLink, isPartPaid, mapsUrl, parseWorks, telHref } from "../utils/format";
+import { formatCurrency, formatTime, isMapLink, isPartPaid, mapsUrl, parseWorks, telHref, workLabel } from "../utils/format";
 
 interface LogCardProps {
   log: WorkLog;
@@ -49,7 +49,7 @@ export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "pap
 
         {(services.length > 0 || log.eventType) && (
           <p className="booking-services">
-            {services.length > 0 ? services.join(", ") : log.eventType}
+            {services.length > 0 ? services.map(workLabel).join(", ") : log.eventType}
             {services.length > 0 && log.eventType && (
               <span className="booking-event"> for {log.eventType.toLowerCase()}</span>
             )}
