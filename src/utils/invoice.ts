@@ -245,26 +245,38 @@ async function buildDocument(d: DocData): Promise<void> {
   const cService = hasDates ? M + 24 : M;
   const cRate = R - 62;
   const cQty = R - 34;
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.2);
-  doc.setFontSize(8.5);
-  doc.setTextColor(...GILT);
-  if (detailed) {
-    if (hasDates) doc.text("Date", cDate, y);
-    doc.text("Rate", cRate, y, { align: "right" });
-    doc.text("Qty", cQty, y, { align: "center" });
-  }
-  doc.text("Service", cService, y);
-  doc.text("Amount", R, y, { align: "right" });
-  y += 3.5;
-  doc.line(M, y, R, y);
-  y += 7;
+  // Content stops above the footer; anything that doesn't fit moves to a new page.
+  const BOTTOM = 266;
+  const room = (need: number): boolean => {
+    if (y + need <= BOTTOM) return false;
+    doc.addPage();
+    y = 26;
+    return true;
+  };
+  const tableHeader = () => {
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.2);
+    doc.setFontSize(8.5);
+    doc.setTextColor(...GILT);
+    if (detailed) {
+      if (hasDates) doc.text("Date", cDate, y);
+      doc.text("Rate", cRate, y, { align: "right" });
+      doc.text("Qty", cQty, y, { align: "center" });
+    }
+    doc.text("Service", cService, y);
+    doc.text("Amount", R, y, { align: "right" });
+    y += 3.5;
+    doc.line(M, y, R, y);
+    y += 7;
+    doc.setFontSize(10.5);
+  };
+  tableHeader();
 
-  doc.setFontSize(10.5);
   const serviceWidth = detailed ? cRate - cService - 22 : R - M - 40;
   for (const row of d.rows) {
-    doc.setTextColor(...INK);
     const label = doc.splitTextToSize(pdfText(row.label), serviceWidth);
+    if (room(5.5 * (label.length - 1) + 10.5)) tableHeader();
+    doc.setTextColor(...INK);
     if (detailed) {
       doc.setTextColor(...SOFT);
       if (row.date) doc.text(shortDate(row.date), cDate, y);
@@ -287,7 +299,8 @@ async function buildDocument(d: DocData): Promise<void> {
   }
   y += 4;
 
-  // Totals: right column, everything inside the margins
+  // Totals: right column, everything inside the margins (kept together)
+  room(48 + d.extras.length * 6.5);
   const subtotal = d.rows.reduce((s, r) => s + r.amount, 0);
   const total = docTotal(d);
   const labelX = R - 70;
@@ -368,6 +381,7 @@ async function buildDocument(d: DocData): Promise<void> {
   const notes = d.notes.map((n) => n.trim()).filter(Boolean);
   if (notes.length) {
     y += 16;
+    room(12);
     doc.setFontSize(8.5);
     doc.setTextColor(...GILT);
     doc.text("Note", M, y);
@@ -376,6 +390,7 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.setTextColor(...INK);
     for (const n of notes) {
       const wrapped = doc.splitTextToSize(pdfText(n), R - M);
+      room(4.8 * wrapped.length + 1);
       doc.text(wrapped, M, y);
       y += 4.8 * wrapped.length + 1;
     }
@@ -383,16 +398,28 @@ async function buildDocument(d: DocData): Promise<void> {
 
   if (quote) {
     y += 12;
+    room(6);
     doc.setFontSize(9);
     doc.setTextColor(...SOFT);
     doc.text("50% advance required to confirm the booking. Advance is strictly non-refundable. Full policy overleaf.", M, y);
   }
 
-  // Footer
-  doc.setFont("times", "italic");
-  doc.setFontSize(11);
-  doc.setTextColor(...WINE);
-  doc.text(pdfText(`Thank you for choosing ${BUSINESS.name}.`), W / 2, 280, { align: "center" });
+  // Footer on every content page (+ page numbers when it runs over)
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFont("times", "italic");
+    doc.setFontSize(11);
+    doc.setTextColor(...WINE);
+    doc.text(pdfText(`Thank you for choosing ${BUSINESS.name}.`), W / 2, 280, { align: "center" });
+    if (pages > 1) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...SOFT);
+      doc.text(`${i} / ${pages}`, R, 280, { align: "right" });
+    }
+  }
+  doc.setPage(pages);
   doc.setFont("helvetica", "normal");
 
   // Page 2: policy (quotes) or advance confirmation (invoices with an advance)
