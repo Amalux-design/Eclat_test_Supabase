@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LogsProvider } from "./context/LogsContext";
 import { BottomNav, TABS } from "./components/BottomNav";
 import { useSwipeTabs } from "./utils/useSwipeTabs";
+import { useTabScroll } from "./utils/useTabScroll";
 import { AppHeader } from "./components/AppHeader";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LogsPage } from "./pages/LogsPage";
@@ -57,6 +58,7 @@ function SwipeTabs({ main }: { main: React.RefObject<HTMLElement | null> }) {
   const { isAdmin } = useAuth();
   const paths = useMemo(() => TABS.filter((t) => isAdmin || !t.adminOnly).map((t) => t.to), [isAdmin]);
   useSwipeTabs(main, paths);
+  useTabScroll();
   return null;
 }
 

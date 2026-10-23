@@ -104,8 +104,7 @@ export function useSwipeTabs(main: React.RefObject<HTMLElement | null>, paths: s
         n?.style.setProperty("--swipe", String(-dir));
         window.setTimeout(() => {
           pending.current = dir < 0 ? "next" : "prev";
-          navigate(target);
-          window.scrollTo(0, 0);
+          navigate(target); // each tab restores its own scroll (useTabScroll)
           window.setTimeout(() => (busy = false), 420);
         }, 230);
       } else {

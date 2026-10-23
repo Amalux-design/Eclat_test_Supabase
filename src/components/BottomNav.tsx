@@ -30,6 +30,13 @@ export function BottomNav() {
           to={to}
           end={to === "/"}
           className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+          onClick={(e) => {
+            // Tapping the tab you're already on scrolls it back to the top.
+            if (e.currentTarget.classList.contains("active")) {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
         >
           <Icon size={21} strokeWidth={1.5} />
           <span className="nav-label">{label}</span>
