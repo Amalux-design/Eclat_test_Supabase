@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { HeadKey } from "../components/HeadKey";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
 import { useAuth } from "../context/AuthContext";
@@ -169,6 +170,10 @@ export function CalendarPage() {
 
   return (
     <div className="page calendar-page">
+      <div className="page-head">
+        <h1 className="page-title">Calendar</h1>
+        <HeadKey />
+      </div>
       {error && <div className="inline-note">{error}</div>}
 
       <div ref={cardRef} className="calendar-card">

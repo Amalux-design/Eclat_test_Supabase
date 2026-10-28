@@ -143,6 +143,18 @@ export function saveInvoice(log: WorkLog): Promise<void> {
   return saveDocument(bookingToDoc(log));
 }
 
+/** "The Beauty Proposal" for a saved booking: same lines, policy page, 50% advance. */
+export function saveQuote(log: WorkLog): Promise<void> {
+  const d = bookingToDoc(log);
+  return saveDocument({
+    ...d,
+    kind: "quote",
+    number: newDocNumber("quote"),
+    received: undefined,
+    notes: BUSINESS.defaultNote ? [BUSINESS.defaultNote] : [],
+  });
+}
+
 export function saveDocument(d: DocData): Promise<void> {
   return withBusy(d.kind === "quote" ? "Preparing proposal" : "Preparing invoice", () => buildDocument(d));
 }
@@ -443,7 +455,10 @@ async function buildDocument(d: DocData): Promise<void> {
   }
 
   const safeName = (d.clientName || "client").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
-  const fileName = `${quote ? "Proposal" : "Invoice"}-${d.number}-${safeName}.pdf`;
+  // A time stamp per download: phones otherwise reopen an older file with the same name.
+  const now = new Date();
+  const stamp = `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+  const fileName = `${quote ? "Proposal" : "Invoice"}-${d.number}-${safeName}-${stamp}.pdf`;
   await deliver(doc.output("blob"), fileName, () => doc.save(fileName));
 }
 

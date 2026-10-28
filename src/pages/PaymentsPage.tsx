@@ -10,6 +10,7 @@ import { Sheet } from "../components/Sheet";
 import { useNotice } from "../components/Notice";
 import { Loader } from "../components/Loader";
 import { SelectField } from "../components/Pickers";
+import { HeadKey } from "../components/HeadKey";
 import { FileDown } from "lucide-react";
 import type { WorkLog, WorkLogInput } from "../types";
 
@@ -91,11 +92,14 @@ export function PaymentsPage() {
     <div className="page earnings-page">
       <div className="page-head">
         <h1 className="page-title">Earnings</h1>
-        {years.length > 0 && (
-          <div className="year-pill">
-            <SelectField label="Year" value={year} options={years} placeholder="All years" onChange={(v) => setYearPick(v)} />
-          </div>
-        )}
+        <div className="page-head-actions">
+          {years.length > 0 && (
+            <div className="year-pill">
+              <SelectField label="Year" value={year} options={years} placeholder="All years" onChange={(v) => setYearPick(v)} />
+            </div>
+          )}
+          <HeadKey />
+        </div>
       </div>
 
       {error && <div className="inline-note">{error}</div>}
@@ -287,7 +291,7 @@ export function PaymentsPage() {
                   </>
                 )}
 
-                <button className="ghost-btn full with-icon" onClick={() => void saveInvoice(selected)}>
+                <button className="ghost-btn full with-icon" onClick={() => void saveInvoice(allLogs.find((l) => l.id === selected.id) ?? selected)}>
                   <FileDown size={18} strokeWidth={1.8} /> Save invoice
                 </button>
 

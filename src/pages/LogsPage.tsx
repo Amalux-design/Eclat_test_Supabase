@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Search, X } from "lucide-react";
-import { QuoteSheet } from "../components/QuoteSheet";
+import { Search, X } from "lucide-react";
+import { HeadKey } from "../components/HeadKey";
 import { useLogs } from "../context/LogsContext";
 import { useAuth } from "../context/AuthContext";
 import { LogCard } from "../components/LogCard";
@@ -69,7 +69,6 @@ export function LogsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<WorkLog | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [quoting, setQuoting] = useState(false);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -105,16 +104,21 @@ export function LogsPage() {
   // Date headings stick just under the filter bar; keep that offset exact
   // as the bar's height changes (search open, text size, screen width).
   useEffect(() => {
-    const bar = rowRef.current?.closest<HTMLElement>(".chip-bar");
-    if (!bar) return;
-    const set = () =>
+    const top = rowRef.current?.closest<HTMLElement>(".bookings-top");
+    const chips = rowRef.current?.closest<HTMLElement>(".chip-bar");
+    if (!top || !chips) return;
+    // Phones held upright: the title + chips block sticks; elsewhere the chip bar does.
+    const set = () => {
+      const bar = getComputedStyle(top).position === "sticky" ? top : chips;
       document.documentElement.style.setProperty(
         "--day-top",
         `${(parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight}px`
       );
+    };
     set();
     const ro = new ResizeObserver(set);
-    ro.observe(bar);
+    ro.observe(top);
+    ro.observe(chips);
     window.addEventListener("resize", set);
     return () => {
       ro.disconnect();
@@ -209,15 +213,12 @@ export function LogsPage() {
 
   return (
     <div className="page bookings-page">
+      {/* Title + filters scroll as one frosted block (phones held upright). */}
+      <div className="bookings-top">
       <div className="page-head">
         <h1 className="page-title">Bookings</h1>
-        {isAdmin && (
-          <button className="agenda-add quote-btn" onClick={() => setQuoting(true)}>
-            <FileText size={16} strokeWidth={2} /> Quote
-          </button>
-        )}
+        <HeadKey />
       </div>
-      {quoting && <QuoteSheet onClose={() => setQuoting(false)} />}
 
       <div className="chip-bar"><div ref={rowRef} className={`chip-row ${searchOpen ? "searching" : ""}`} role="tablist" aria-label="Show bookings">
         <div className={`search-pill ${searchOpen ? "open" : ""}`} onClick={searchOpen ? undefined : openSearch}>
@@ -265,6 +266,7 @@ export function LogsPage() {
           </button>
         ))}
       </div></div>
+      </div>
 
       {error && <div className="inline-note">{error}</div>}
       {loading && <Loader label="Loading bookings" />}

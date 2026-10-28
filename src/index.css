@@ -4520,3 +4520,276 @@ html { scrollbar-gutter: stable; }
 }
 .bill-sign.minus { background: var(--oxblood); color: var(--on-dark); border-color: var(--oxblood); }
 .bill-sign:active { transform: scale(0.94); }
+
+/* Phones held upright: no logo in the header (it still shows on the launch
+   splash). Landscape, tablets wide enough for the sidebar, laptops keep it. */
+@media (orientation: portrait) and (max-width: 1023px) {
+  .masthead .logo { display: none; }
+}
+
+/* Booking card: "⋯" opens the More menu (invoice, quotation, delete) */
+.more-btn.is-open { background: rgba(66, 12, 21, 0.14); }
+.booking-wine .more-btn.is-open { background: rgba(255, 255, 255, 0.22); }
+
+/* More menu (portalled) */
+.more-layer { position: fixed; inset: 0; z-index: 90; }
+.more-menu {
+  position: fixed;
+  min-width: 230px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 16px 40px rgba(63, 23, 21, 0.2), 0 0 0 0.5px rgba(63, 23, 21, 0.08);
+  display: grid;
+  gap: 2px;
+  animation: settle-in 0.18s var(--ease-soft);
+  transform-origin: top right;
+}
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+.more-item svg { color: var(--oxblood); flex: none; }
+.more-item:hover, .more-item:active { background: rgba(66, 12, 21, 0.06); }
+.more-item.danger, .more-item.danger svg { color: var(--due); }
+@media (prefers-reduced-motion: reduce) { .more-menu { animation: none; } }
+
+/* ---------- phones held upright: no header bar, key beside the page title ---------- */
+.head-key { display: none; }
+.page-head-actions { display: flex; align-items: center; gap: 10px; }
+@media (orientation: portrait) and (max-width: 1023px) {
+  .masthead { display: none; }
+  .app-shell { padding-top: var(--safe-top); }
+  .chip-bar { top: var(--safe-top); }
+  .head-key {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--oxblood);
+    cursor: pointer;
+  }
+  .head-key:active { background: var(--fill); }
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; }
+}
+/* Calendar title spans both columns on laptops */
+.calendar-page > .page-head { grid-column: 1 / -1; }
+
+/* ---------- booking card: calmer, more organised ---------- */
+.booking { align-items: start; }
+.booking-time {
+  padding-right: 12px;
+  border-right: 0.5px solid var(--separator);
+  align-self: stretch;
+  max-height: 64px;
+}
+.booking-wine .booking-time { border-right-color: rgba(251, 243, 234, 0.16); }
+.booking-client { font-size: 18px; }
+.booking-amount { font-weight: 700; }
+.booking-location { display: inline-flex; align-items: center; gap: 6px; }
+.booking-location svg:first-child { color: var(--oxblood); }
+.booking-wine .booking-location svg:first-child { color: var(--gilt-soft); }
+.booking-location-go { opacity: 0.6; margin-left: -2px; }
+.booking-notes { display: flex; gap: 10px; align-items: flex-start; }
+.booking-notes svg { flex: none; margin-top: 2px; opacity: 0.65; }
+.pill { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Ready time stacked under its label, so the time column stays narrow */
+.booking-ready { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; line-height: 1.2; }
+.booking-ready-label { font-size: 12px; opacity: 0.75; }
+.booking-time { max-height: none; }
+
+/* ---------- booking card v2: hierarchy, air, one icon language ----------
+   Icons: 16–18px, 1.75 stroke, wine. Type: time & name 20/600, price 20/700,
+   services 16 soft, place 16/600 underlined. Badges 34px tall. */
+.booking { padding: 18px 18px 16px; gap: 14px; }
+.booking-start { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.booking-ready { font-size: 14px; color: var(--ink-2); }
+.booking-head { align-items: baseline; }
+.booking-client { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.booking-amount { font-size: 20px; font-weight: 700; color: var(--oxblood); }
+.booking-services { font-size: 16px; color: var(--ink-2); margin-top: 4px; }
+.booking-meta { margin-top: 12px; gap: 14px; }
+.booking-location { font-size: 16px; font-weight: 600; gap: 8px; }
+.booking-location span { text-underline-offset: 4px; }
+.booking-location-go { opacity: 0.7; margin-left: 0; }
+.booking-notes {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 16px;
+  color: var(--ink-2);
+  gap: 12px;
+}
+.booking-notes svg { opacity: 0.8; color: var(--ink-2); margin-top: 1px; }
+.booking-private { gap: 10px; }
+.booking-admin { margin-top: 14px; gap: 8px; }
+
+/* badges */
+.booking .pill {
+  height: 34px;
+  padding: 0 14px 0 12px;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+.booking .pill svg { flex: none; }
+.booking .pill-reserved { background: rgba(66, 12, 21, 0.07); color: var(--oxblood); }
+.booking .pill-paid { background: rgba(212, 180, 140, 0.28); color: #7d5a36; }
+.pill-tick {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8a6440;
+  color: #fff;
+  flex: none;
+}
+.booking-wine .pill-tick { background: var(--gilt-soft); color: var(--wine); }
+.booking-wine .booking-services,
+.booking-wine .booking-notes,
+.booking-wine .booking-ready { color: rgba(251, 243, 234, 0.78); }
+.booking-wine .booking-amount { color: var(--on-dark); }
+.booking-wine .booking-notes svg { color: rgba(251, 243, 234, 0.7); }
+
+/* divider only beside the time block, as in the mockup */
+.booking-time { align-self: start; }
+
+/* Badges a step smaller than the round buttons (28px vs 40px) */
+.booking .pill { height: 28px; padding: 0 11px 0 9px; gap: 6px; font-size: 13px; }
+.booking .pill svg { width: 14px; height: 14px; }
+.booking .pill-tick { width: 16px; height: 16px; }
+.booking .pill-tick svg { width: 10px; height: 10px; }
+
+/* Lines between bookings in a list: a touch stronger */
+.group.list > .booking + .booking,
+.list > .booking + .booking,
+.agenda .list > div + div { border-top: 1px solid rgba(66, 12, 21, 0.13); }
+.pinned .booking + .booking { border-top: 1px solid rgba(251, 243, 234, 0.22); }
+
+/* every list divider, a touch stronger (was 0.5px at ~12%) */
+.list > * + *,
+.list > div + div { border-top: 1px solid rgba(66, 12, 21, 0.13); }
+
+/* ---------- sticky page titles (phones held upright) ---------- */
+.bookings-top { display: contents; } /* laptops/landscape: chip bar sticks on its own */
+@media (orientation: portrait) and (max-width: 1023px) {
+  /* Calendar & Earnings: the title row sticks */
+  .calendar-page > .page-head,
+  .earnings-page > .page-head {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    margin: 0 -16px 12px;
+    padding: calc(10px + var(--safe-top)) 16px 10px;
+    background: rgba(248, 242, 234, 0.72);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+  }
+  /* Bookings: title + filter chips are one frosted block */
+  .bookings-top {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    margin: 0 -16px 14px;
+    padding-top: var(--safe-top);
+    background: rgba(248, 242, 234, 0.72);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .bookings-top > .page-head { margin: 0; padding: 10px 16px 4px; }
+  .bookings-top .chip-bar {
+    position: static;
+    margin: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 0;
+  }
+  .app-shell { padding-top: 0; }
+}
+
+/* Wine Today panel: Booked badge readable again (the v2 colours overrode it) */
+.booking-wine .pill-reserved,
+.pinned .booking .pill-reserved { color: var(--on-dark); background: rgba(255, 255, 255, 0.12); }
+
+/* Sticky title blocks start at the very top, so they never slide before sticking */
+@media (orientation: portrait) and (max-width: 1023px) {
+  .page { padding-top: 0; }
+  .calendar-page > .page-head,
+  .earnings-page > .page-head,
+  .bookings-top { margin-top: 0; }
+}
+
+/* ---------- sticky page titles on every screen ----------
+   Upright phones: at the very top (no header bar). Landscape phones/tablets:
+   just under the logo bar (--header-h). Laptops: top of the content area. */
+.page { padding-top: 0; }
+.calendar-page > .page-head,
+.earnings-page > .page-head,
+.bookings-top {
+  position: sticky;
+  top: var(--header-h, 0px);
+  z-index: 12;
+  margin: 0 -16px 12px;
+  background: rgba(248, 242, 234, 0.72);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+}
+.calendar-page > .page-head,
+.earnings-page > .page-head { padding: 10px 16px; }
+.bookings-top { display: block; border-bottom: 0.5px solid var(--separator); }
+.bookings-top > .page-head { margin: 0; padding: 10px 16px 4px; }
+.bookings-top .chip-bar {
+  position: static;
+  margin: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 0;
+}
+@media (orientation: portrait) and (max-width: 1023px) {
+  .calendar-page > .page-head,
+  .earnings-page > .page-head,
+  .bookings-top { top: 0; }
+}
+@media (min-width: 1024px) {
+  .calendar-page > .page-head,
+  .earnings-page > .page-head,
+  .bookings-top { top: 0; margin-left: -48px; margin-right: -48px; }
+  .calendar-page > .page-head,
+  .earnings-page > .page-head,
+  .bookings-top > .page-head { padding-left: 48px; padding-right: 48px; }
+  .bookings-top .chip-bar { padding-left: 48px; padding-right: 48px; }
+  .calendar-page > .page-head { padding-top: 24px; }
+  /* agenda column sticks below the title instead of under it */
+  .calendar-page .agenda { top: 96px; max-height: calc(100vh / var(--z, 1) - 120px); }
+}
+@media (min-width: 1440px) {
+  .calendar-page > .page-head,
+  .earnings-page > .page-head,
+  .bookings-top { margin-left: -72px; margin-right: -72px; }
+  .calendar-page > .page-head,
+  .earnings-page > .page-head,
+  .bookings-top > .page-head,
+  .bookings-top .chip-bar { padding-left: 72px; padding-right: 72px; }
+}

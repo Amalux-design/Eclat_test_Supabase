@@ -1,5 +1,5 @@
-import { FileDown, LockKeyhole, MapPin, PencilLine, Phone, Trash2, Users } from "lucide-react";
-import { saveInvoice } from "../utils/invoice";
+import { ChevronRight, FileText, LockKeyhole, MapPin, PencilLine, Phone, Users } from "lucide-react";
+import { MoreMenu } from "./MoreMenu";
 import type { WorkLog } from "../types";
 import { StatusPill } from "./StatusPill";
 import { PhotoStrip } from "./Photos";
@@ -38,7 +38,12 @@ export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "pap
       <div className="booking-time">
         {dateLabel && <span className="booking-date">{dateLabel}</span>}
         <span className="booking-start">{log.startTime ? formatTime(log.startTime) : "Any time"}</span>
-        {log.endTime && <span className="booking-ready">ready {formatTime(log.endTime)}</span>}
+        {log.endTime && (
+          <span className="booking-ready">
+            <span className="booking-ready-label">Ready</span>
+            <span>{formatTime(log.endTime)}</span>
+          </span>
+        )}
       </div>
 
       <div className="booking-body">
@@ -66,26 +71,32 @@ export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "pap
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MapPin size={14} strokeWidth={1.6} />
+                <MapPin size={18} strokeWidth={1.75} />
                 <span>{isMapLink(log.location) ? "Open in Maps" : log.location}</span>
+                <ChevronRight size={18} strokeWidth={1.75} className="booking-location-go" aria-hidden="true" />
               </a>
             )}
             {log.bridesmaids > 0 && (
               <span className="booking-bridesmaids">
-                <Users size={14} strokeWidth={1.6} />
+                <Users size={18} strokeWidth={1.75} />
                 {log.bridesmaids} bridesmaid{log.bridesmaids === 1 ? "" : "s"}
               </span>
             )}
           </div>
         )}
 
-        {log.notes && <p className="booking-notes">{log.notes}</p>}
+        {log.notes && (
+          <p className="booking-notes">
+            <FileText size={18} strokeWidth={1.75} aria-hidden="true" />
+            <span>{log.notes}</span>
+          </p>
+        )}
 
         <PhotoStrip photos={log.photos} />
 
         {isAdmin && log.privateNotes && (
           <p className="booking-private">
-            <LockKeyhole size={13} strokeWidth={1.8} />
+            <LockKeyhole size={16} strokeWidth={1.75} />
             <span>{log.privateNotes}</span>
           </p>
         )}
@@ -101,55 +112,23 @@ export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "pap
               <StatusPill kind={log.paymentStatus} />
             )}
             {!log.own && <span className="booking-referral">via {log.referrerName || "referral"}</span>}
-            <span className="booking-admin-actions">
+            <span className="booking-admin-actions" onClick={(e) => e.stopPropagation()}>
               {log.clientPhone && (
-                <a
-                  href={telHref(log.clientPhone)}
-                  className="round-btn"
-                  aria-label={`Call ${log.clientName || "client"}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <a href={telHref(log.clientPhone)} className="round-btn" aria-label={`Call ${log.clientName || "client"}`}>
                   <Phone size={15} strokeWidth={1.6} />
                 </a>
               )}
-              <button
-                className="round-btn"
-                aria-label={`Save invoice for ${log.clientName || "this booking"}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void saveInvoice(log);
-                }}
-              >
-                <FileDown size={15} strokeWidth={1.6} />
-              </button>
-              {onDelete && (
-                <button
-                  className="round-btn danger"
-                  aria-label="Delete booking"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                  }}
-                >
-                  <Trash2 size={15} strokeWidth={1.6} />
-                </button>
-              )}
               {onEdit && (
-                <button
-                  className="round-btn edit-pill"
-                  aria-label={`Edit booking for ${log.clientName || "this client"}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                >
+                <button type="button" className="round-btn edit-pill" onClick={onEdit} aria-label={`Edit booking for ${log.clientName || "this client"}`}>
                   <PencilLine size={16} strokeWidth={1.7} />
                 </button>
               )}
+              <MoreMenu log={log} onDelete={onDelete} />
             </span>
           </div>
         )}
       </div>
+
     </article>
   );
 }

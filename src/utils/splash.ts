@@ -21,7 +21,8 @@ function handoff(): void {
   const to = document.querySelector<HTMLElement>(".masthead .logo");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  if (!from || !to || reduced) {
+  // No visible header logo (e.g. phone held upright): just fade out.
+  if (!from || !to || reduced || to.getClientRects().length === 0) {
     splash.classList.add("leaving");
     setTimeout(() => splash.remove(), 650);
     return;

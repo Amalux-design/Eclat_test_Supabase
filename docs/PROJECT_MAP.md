@@ -15,9 +15,9 @@ Verified against the code on 2026-10-20.
 | Auth & roles | `src/context/AuthContext.tsx` (status loading/signed-out/no-access/ready; signIn, createAccount, changePassword, signOut, recheck; isAdmin/isOwner) |
 | Data | `src/context/LogsContext.tsx` (fetch, realtime, add/edit/remove/markPaid/recordPayment, conflict handling, `saving` count → logo shimmer), `src/api/client.ts` (every Supabase call; `ApiError` codes AUTH/CONFLICT/NOT_FOUND/VALIDATION/NETWORK/ERROR) |
 | Cache | `src/utils/localCache.ts` — last booking list per role in localStorage for instant first paint; cleared on sign-out |
-| Pages | `src/pages/CalendarPage.tsx`, `LogsPage.tsx` (chips, search, sticky date headings, Quote pill), `PaymentsPage.tsx` (year filter, totals card, Month/Client ledger, payment sheet) |
+| Pages | `src/pages/CalendarPage.tsx`, `LogsPage.tsx` (sticky title + chips block, search, sticky date headings), `PaymentsPage.tsx` (year filter, totals card, Month/Client ledger, payment sheet) |
 | Booking UI | `LogForm.tsx`, `LogCard.tsx` (Edit pill, call, invoice, delete), `ServiceTiles.tsx` (tiles + qty stepper), `Photos.tsx` (picker, strip, viewer with prev/next), `Pickers.tsx` (date/time/select sheets) |
-| Documents | `src/utils/invoice.ts` (one PDF engine: invoice from a booking, quotation/invoice from `QuoteSheet.tsx`; policy page / advance-confirmation page) |
+| Documents | `src/utils/invoice.ts` (one PDF engine: invoice and quotation from a booking via the card's ⋯ menu `MoreMenu.tsx`; policy page, page breaks, time-stamped file names) |
 | Business data | `src/data/services.ts` (price menu, `servicePrice`), `src/data/business.ts` (address, phone, email, UPI/bank, quote policy, default note) |
 | Shell & motion | `AppHeader.tsx`, `BottomNav.tsx` (exports `TABS`), `utils/useSwipeTabs.ts` (finger-follow swipe between tabs, `data-swipe` entrance), `utils/splash.ts` (logo glides into header), `utils/useSheet.ts`, `Sheet.tsx`, `ConfirmDialog.tsx`, `Notice.tsx` |
 | Styles | `src/index.css` (tokens on `:root`, then layered sections; laptop block `@media (min-width:1024px)`; laptop zoom ≥1360px) |

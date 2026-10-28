@@ -7,6 +7,12 @@ import { useLogs } from "../context/LogsContext";
 export function AppHeader() {
   const { saving } = useLogs();
   const [accountOpen, setAccountOpen] = useState(false);
+  // The key beside page titles (HeadKey) opens the same Account sheet.
+  useEffect(() => {
+    const open = () => setAccountOpen(true);
+    window.addEventListener("eclat:account", open);
+    return () => window.removeEventListener("eclat:account", open);
+  }, []);
   const [online, setOnline] = useState(() => navigator.onLine);
   const headerRef = useRef<HTMLElement>(null);
 
