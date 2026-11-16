@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { BarChart3, ChevronDown } from "lucide-react";
+import { EarningsDashboard } from "../components/EarningsDashboard";
 import { useLogs } from "../context/LogsContext";
 import { LogCard } from "../components/LogCard";
 import { LogForm } from "../components/LogForm";
@@ -23,6 +24,7 @@ export function PaymentsPage() {
   const [groupByClient, setGroupByClient] = useState(false);
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<WorkLog | null>(null);
+  const [dashOpen, setDashOpen] = useState(false);
 
   const totals = useMemo(() => {
     let total = 0, paid = 0, pending = 0, pendingCount = 0;
@@ -120,6 +122,9 @@ export function PaymentsPage() {
                 )}
               </div>
             </div>
+            <button type="button" className="ledger-dash-btn" onClick={() => setDashOpen(true)}>
+              <BarChart3 size={17} strokeWidth={1.8} /> Show dashboard
+            </button>
           </section>
 
           <div className="ledger-head">
@@ -191,6 +196,7 @@ export function PaymentsPage() {
       )}
 
 
+      {dashOpen && <EarningsDashboard logs={logs} year={year} onClose={() => setDashOpen(false)} />}
       {editing && (
         <LogForm
           title="Edit booking"

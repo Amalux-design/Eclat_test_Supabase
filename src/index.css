@@ -4924,3 +4924,133 @@ button,
 }
 #ov-thumb.on { opacity: 1; transition-duration: 0.12s; }
 @media (prefers-reduced-motion: reduce) { #ov-thumb { transition: none; } }
+
+/* ---------- Earnings: "Show dashboard" on the wine card ---------- */
+.ledger-dash-btn {
+  margin-top: 18px;
+  height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 243, 234, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--on-dark);
+  font: inherit;
+  font-family: var(--font-fin);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ledger-dash-btn:active { transform: scale(0.97); }
+
+/* ---------- Earnings dashboard: wine hero + Playfair sections ---------- */
+.dash { display: grid; gap: 22px; padding-bottom: calc(24px + var(--safe-bottom)); font-family: var(--font-fin); font-variant-numeric: lining-nums tabular-nums; color: var(--ink); }
+
+/* hero */
+.dash-hero { background: var(--wine); color: var(--on-dark); border-radius: 22px; padding: 22px 20px 16px; box-shadow: 0 12px 30px rgba(70, 26, 28, 0.22); }
+.dash-hero-top { display: flex; align-items: center; gap: 18px; }
+.dash-ring { position: relative; width: 112px; height: 112px; flex: none; }
+.dash-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.dash-ring-track { fill: none; stroke: rgba(251, 243, 234, 0.14); stroke-width: 9; }
+.dash-ring-fill { fill: none; stroke: var(--gilt-soft); stroke-width: 9; stroke-linecap: round; animation: dash-ring 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.dash-ring-text { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.dash-ring-text b { font-size: 24px; font-weight: 600; line-height: 1; }
+.dash-ring-text span { font-size: 12px; opacity: 0.75; margin-top: 3px; }
+.dash-hero-figures { display: grid; gap: 4px; min-width: 0; }
+.dash-hero-label { font-size: 13px; opacity: 0.78; }
+.dash-hero-total { font-size: 30px; font-weight: 400; letter-spacing: -0.01em; line-height: 1.15; margin-bottom: 6px; }
+.dash-hero-row { font-size: 14px; opacity: 0.9; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.dash-hero-row b { font-weight: 600; margin-left: auto; padding-left: 8px; }
+.dash-hero-row i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dash-hero-row.due i { background: rgba(251, 243, 234, 0.35); }
+.dash-hero-row.due b { color: var(--due-on-dark); }
+.dash-hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 18px 0 0; padding-top: 14px; border-top: 1px solid rgba(251, 243, 234, 0.14); }
+.dash-hero-stats div { display: grid; gap: 2px; }
+.dash-hero-stats div + div { padding-left: 14px; border-left: 1px solid rgba(251, 243, 234, 0.14); }
+.dash-hero-stats dt { font-size: 12px; opacity: 0.72; }
+.dash-hero-stats dd { margin: 0; font-size: 18px; font-weight: 600; }
+
+/* sections */
+.dash-section { display: grid; gap: 12px; }
+.dash-section-title { margin: 0; font-family: var(--font-title); font-weight: 600; font-size: 21px; color: var(--oxblood); }
+.dash-section > :not(.dash-section-title) { background: var(--surface); border-radius: 18px; padding: 14px 16px; }
+.dash-section > .dash-legend { background: none; padding: 0 2px; margin-bottom: -6px; }
+
+/* money to collect */
+.dash-section > .dash-collect { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; padding: 0; overflow: hidden; background: var(--separator); }
+.dash-collect-box { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; }
+.dash-collect-box span { font-size: 13px; color: var(--ink-2); }
+.dash-collect-box b { font-size: 20px; font-weight: 600; }
+.dash-collect-box.overdue b { color: var(--due); }
+.dash-collect-box small { font-size: 12px; color: var(--ink-3); }
+.dash-rows { list-style: none; margin: 0; display: grid; }
+.dash-rows li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; font-size: 15px; }
+.dash-rows li + li { border-top: 0.5px solid var(--separator); }
+.dash-rows em { font-style: normal; font-size: 13px; color: var(--ink-3); margin-left: 8px; }
+.dash-rows b { font-weight: 600; white-space: nowrap; }
+.dash-rows b.due { color: var(--due); }
+
+/* legend, month chart */
+.dash-legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink-2); }
+.dash-legend i, .dash-split-labels i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.dash-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.dash-grid { stroke: rgba(66, 12, 21, 0.09); stroke-width: 1; }
+.dash-axis { font-size: 10px; fill: var(--ink-2); font-family: var(--font-fin); }
+.dash-hover { fill: rgba(66, 12, 21, 0.06); }
+.dash-bar { transform-box: fill-box; transform-origin: bottom; animation: dash-grow-y 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.dash-tip { margin: 6px 0 0; min-height: 20px; font-size: 13px; }
+.dash-hint { color: var(--ink-3); }
+.dash-table summary { margin-top: 6px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.dash-table table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 13px; }
+.dash-table th, .dash-table td { text-align: right; padding: 6px 4px; border-bottom: 0.5px solid var(--separator); }
+.dash-table th:first-child, .dash-table td:first-child { text-align: left; }
+
+/* busiest days */
+.dash-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; height: 140px; }
+.dash-week-col { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 4px; height: 100%; }
+.dash-week-n { font-size: 12px; font-weight: 600; color: var(--ink-2); min-height: 15px; }
+.dash-week-bar { width: 100%; max-width: 22px; display: flex; align-items: flex-end; border-radius: 6px; background: rgba(66, 12, 21, 0.05); }
+.dash-week-bar > span { width: 100%; border-radius: 6px; background: rgba(194, 138, 58, 0.55); display: block; }
+.dash-week-col.top .dash-week-bar > span { background: #c28a3a; }
+.dash-week-col.top .dash-week-n { color: var(--ink); }
+.dash-week-d { font-size: 12px; color: var(--ink-2); }
+.dash-grow-y { transform-origin: bottom; animation: dash-grow-y 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* ranked lists */
+.dash-ranked { list-style: none; margin: 0; display: grid; gap: 12px; }
+.dash-ranked-head { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.dash-ranked-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-ranked-head b { font-weight: 600; white-space: nowrap; }
+.dash-ranked-track { display: block; height: 6px; margin-top: 6px; border-radius: 999px; background: rgba(66, 12, 21, 0.06); overflow: hidden; }
+.dash-ranked-track > span { height: 100%; border-radius: 4px; }
+
+/* split bar */
+.dash-split { display: grid; gap: 10px; }
+.dash-split-bar { display: flex; gap: 2px; height: 14px; border-radius: 999px; overflow: hidden; }
+.dash-split-bar span { height: 100%; border-radius: 4px; }
+.dash-split-labels { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.dash-split-labels b { color: var(--ink); font-weight: 600; }
+.dash-grow-x { display: block; transform-origin: left; animation: dash-grow-x 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes dash-grow-y { from { transform: scaleY(0); } }
+@keyframes dash-grow-x { from { transform: scaleX(0); } }
+@keyframes dash-ring { from { stroke-dashoffset: 276.5; } to { stroke-dashoffset: var(--ring-off); } }
+@media (min-width: 1024px) { .dash-hero-total { font-size: 34px; } }
+@media (prefers-reduced-motion: reduce) { .dash-bar, .dash-grow-x, .dash-grow-y, .dash-ring-fill { animation: none; } }
+
+/* Dashboard: crisp chart (drawn at real width), small screens */
+.dash-chart svg { width: 100%; height: auto; max-width: 100%; }
+.dash-axis { font-size: 11px; }
+@media (max-width: 380px) {
+  .dash-hero { padding: 18px 16px 14px; }
+  .dash-hero-top { gap: 14px; }
+  .dash-ring { width: 92px; height: 92px; }
+  .dash-ring-text b { font-size: 20px; }
+  .dash-hero-total { font-size: 24px; }
+  .dash-hero-row { font-size: 13px; }
+  .dash-hero-stats dd { font-size: 16px; }
+  .dash-collect-box { padding: 12px; }
+  .dash-collect-box b { font-size: 17px; }
+}
