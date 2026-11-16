@@ -1,21 +1,16 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
 import { LogCard } from "../components/LogCard";
 import { LogForm } from "../components/LogForm";
 import { formatCurrency, monthLabel, receivedOf } from "../utils/format";
-import { useConfirm } from "../components/ConfirmDialog";
-import { saveInvoice } from "../utils/invoice";
-import { Sheet } from "../components/Sheet";
-import { useNotice } from "../components/Notice";
 import { Loader } from "../components/Loader";
 import { SelectField } from "../components/Pickers";
 import { HeadKey } from "../components/HeadKey";
-import { FileDown } from "lucide-react";
 import type { WorkLog, WorkLogInput } from "../types";
 
 export function PaymentsPage() {
-  const { logs: allLogs, loading, error, markPaid, recordPayment, editLog } = useLogs();
+  const { logs: allLogs, loading, error, editLog } = useLogs();
   // Year filter: defaults to this year when it has bookings, else the latest.
   const years = useMemo(
     () => [...new Set(allLogs.map((l) => l.date.slice(0, 4)))].sort().reverse(),
@@ -25,13 +20,8 @@ export function PaymentsPage() {
   const [yearPick, setYearPick] = useState<string | null>(null);
   const year = yearPick ?? (years.includes(thisYear) ? thisYear : years[0] ?? "");
   const logs = useMemo(() => (year ? allLogs.filter((l) => l.date.startsWith(year)) : allLogs), [allLogs, year]);
-  const confirm = useConfirm();
-  const notify = useNotice();
-  const [partialOpen, setPartialOpen] = useState(false);
-  const [partialValue, setPartialValue] = useState("");
   const [groupByClient, setGroupByClient] = useState(false);
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<WorkLog | null>(null);
   const [editing, setEditing] = useState<WorkLog | null>(null);
 
   const totals = useMemo(() => {
@@ -163,7 +153,7 @@ export function PaymentsPage() {
                   <div className="month-row-reveal" aria-hidden={!isOpen}>
                     <div className="month-row-body list">
                       {g.logs.map((log) => (
-                        <LogCard key={log.id} log={log} onClick={() => setSelected(log)} />
+                        <LogCard key={log.id} log={log} onEdit={() => setEditing(log)} />
                       ))}
                     </div>
                   </div>
@@ -184,7 +174,7 @@ export function PaymentsPage() {
                   </h2>
                   <div className="group list">
                     {clientLogs.map((log) => (
-                      <LogCard key={log.id} log={log} onClick={() => setSelected(log)} />
+                      <LogCard key={log.id} log={log} onEdit={() => setEditing(log)} />
                     ))}
                   </div>
                 </section>
@@ -200,116 +190,6 @@ export function PaymentsPage() {
         </>
       )}
 
-      {selected && (() => {
-        const received = receivedOf(selected);
-        const balance = selected.amount - received;
-        const reset = () => {
-          setSelected(null);
-          setPartialOpen(false);
-          setPartialValue("");
-        };
-        return (
-          <Sheet label="Booking payment" onClose={reset}>
-            {(close) => (
-            <>
-              <div className="modal-header">
-                <span />
-                <h2 className="modal-title">{selected.clientName || "Booking"}</h2>
-                <button className="icon-btn" onClick={close} aria-label="Close">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="modal-body">
-                <div className="group list"><LogCard log={selected} /></div>
-
-                {balance > 0 && (
-                  <>
-                    <div className="pay-summary">
-                      <span>Received {formatCurrency(received)}</span>
-                      <span className="due">Balance {formatCurrency(balance)}</span>
-                    </div>
-
-                    <button
-                      className="primary-btn"
-                      onClick={async () => {
-                        const ok = await confirm({
-                          title: "Mark as fully paid?",
-                          message: `${selected.clientName || "This booking"} will show ${formatCurrency(selected.amount)} received.`,
-                          confirmLabel: "Mark paid",
-                        });
-                        if (!ok) return;
-                        try {
-                          await markPaid(selected.id);
-                          close();
-                        } catch (err) {
-                          notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
-                        }
-                      }}
-                    >
-                      Mark {formatCurrency(balance)} as paid
-                    </button>
-
-                    {!partialOpen ? (
-                      <button className="ghost-btn full" onClick={() => setPartialOpen(true)}>
-                        Mark partial
-                      </button>
-                    ) : (
-                      <form
-                        className="partial-form"
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const add = Number(partialValue);
-                          if (!add || add <= 0) return;
-                          try {
-                            await recordPayment(selected.id, received + add);
-                            close();
-                          } catch (err) {
-                            notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
-                          }
-                        }}
-                      >
-                        <label className="field-label" htmlFor="partial-amount">Amount received now</label>
-                        <div className="partial-row">
-                          <input
-                            id="partial-amount"
-                            type="number"
-                            inputMode="numeric"
-                            min="1"
-                            max={balance}
-                            autoFocus
-                            className="field-input"
-                            value={partialValue}
-                            onChange={(e) => setPartialValue(e.target.value)}
-                            placeholder={`Up to ${formatCurrency(balance)}`}
-                          />
-                          <button type="submit" className="save-pill" disabled={!Number(partialValue)}>
-                            Save
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                  </>
-                )}
-
-                <button className="ghost-btn full with-icon" onClick={() => void saveInvoice(allLogs.find((l) => l.id === selected.id) ?? selected)}>
-                  <FileDown size={18} strokeWidth={1.8} /> Save invoice
-                </button>
-
-                <button
-                  className="ghost-btn full"
-                  onClick={() => {
-                    setEditing(selected);
-                    close();
-                  }}
-                >
-                  Edit booking
-                </button>
-              </div>
-            </>
-            )}
-          </Sheet>
-        );
-      })()}
 
       {editing && (
         <LogForm

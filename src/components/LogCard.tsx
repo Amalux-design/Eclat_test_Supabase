@@ -1,134 +1,104 @@
-import { ChevronRight, FileText, LockKeyhole, MapPin, PencilLine, Phone, Users } from "lucide-react";
-import { MoreMenu } from "./MoreMenu";
+import { useState } from "react";
+import { ChevronRight, Images, Phone } from "lucide-react";
 import type { WorkLog } from "../types";
 import { StatusPill } from "./StatusPill";
-import { PhotoStrip } from "./Photos";
+import { BookingSheet } from "./BookingSheet";
 import { useAuth } from "../context/AuthContext";
-import { formatCurrency, formatTime, isMapLink, isPartPaid, mapsUrl, parseWorks, telHref, workLabel } from "../utils/format";
+import { formatCurrency, formatTime, isPartPaid, parseWorks, telHref, workLabel } from "../utils/format";
 
 interface LogCardProps {
   log: WorkLog;
-  onClick?: () => void;
+  /** Kept for older call sites; deleting now lives in the details sheet. */
   onDelete?: () => void;
-  /** Admin-only Edit pill; viewing a booking never opens the form by itself. */
+  /** Opens the booking form (from the details sheet). */
   onEdit?: () => void;
   /** Show a short date above the time, for lists that span several days. */
   dateLabel?: string;
   tone?: "paper" | "wine";
 }
 
-export function LogCard({ log, onClick, onDelete, onEdit, dateLabel, tone = "paper" }: LogCardProps) {
+/**
+ * Compact booking preview: time, name, price, a one-line service summary,
+ * badges, a photo hint and Call. Tap anywhere to open the full details sheet.
+ */
+export function LogCard({ log, onEdit, dateLabel, tone = "paper" }: LogCardProps) {
   const { isAdmin } = useAuth();
-  const services = parseWorks(log.work);
-  const interactive = Boolean(onClick);
+  const [open, setOpen] = useState(false);
+  const services = parseWorks(log.work).map(workLabel);
+  const summary = services.length ? services.join(", ") : log.eventType ?? "";
+  const event = services.length > 0 && log.eventType ? ` for ${log.eventType.toLowerCase()}` : "";
 
   return (
-    <article
-      className={`booking booking-${tone} ${interactive ? "is-interactive" : ""} booking-${log.status.toLowerCase()}`}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (interactive && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-    >
-      <div className="booking-time">
-        {dateLabel && <span className="booking-date">{dateLabel}</span>}
-        <span className="booking-start">{log.startTime ? formatTime(log.startTime) : "Any time"}</span>
-        {log.endTime && (
-          <span className="booking-ready">
-            <span className="booking-ready-label">Ready</span>
-            <span>{formatTime(log.endTime)}</span>
-          </span>
-        )}
-      </div>
-
-      <div className="booking-body">
-        <div className="booking-head">
-          <h3 className="booking-client">{log.clientName || "Unnamed client"}</h3>
-          {isAdmin && log.amount > 0 && <span className="booking-amount">{formatCurrency(log.amount)}</span>}
+    <>
+      <article
+        className={`booking booking-${tone} booking-compact is-interactive booking-${log.status.toLowerCase()}`}
+        onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Open booking for ${log.clientName || "client"}`}
+      >
+        <div className="booking-time">
+          {dateLabel && <span className="booking-date">{dateLabel}</span>}
+          <span className="booking-start">{log.startTime ? formatTime(log.startTime) : "Any time"}</span>
+          {log.endTime && (
+            <span className="booking-ready">
+              <span className="booking-ready-label">Ready</span>
+              <span>{formatTime(log.endTime)}</span>
+            </span>
+          )}
+          {isAdmin && log.clientPhone && (
+            <a
+              href={telHref(log.clientPhone)}
+              className="round-btn booking-call"
+              aria-label={`Call ${log.clientName || "client"}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Phone size={15} strokeWidth={1.75} />
+            </a>
+          )}
         </div>
 
-        {(services.length > 0 || log.eventType) && (
-          <p className="booking-services">
-            {services.length > 0 ? services.map(workLabel).join(", ") : log.eventType}
-            {services.length > 0 && log.eventType && (
-              <span className="booking-event"> for {log.eventType.toLowerCase()}</span>
-            )}
-          </p>
-        )}
-
-        {(log.location || log.bridesmaids > 0) && (
-          <div className="booking-meta">
-            {log.location && (
-              <a
-                className="booking-location"
-                href={mapsUrl(log.location)}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MapPin size={18} strokeWidth={1.75} />
-                <span>{isMapLink(log.location) ? "Open in Maps" : log.location}</span>
-                <ChevronRight size={18} strokeWidth={1.75} className="booking-location-go" aria-hidden="true" />
-              </a>
-            )}
-            {log.bridesmaids > 0 && (
-              <span className="booking-bridesmaids">
-                <Users size={18} strokeWidth={1.75} />
-                {log.bridesmaids} bridesmaid{log.bridesmaids === 1 ? "" : "s"}
-              </span>
-            )}
+        <div className="booking-body">
+          <div className="booking-head">
+            <h3 className="booking-client">{log.clientName || "Unnamed client"}</h3>
+            {isAdmin && log.amount > 0 && <span className="booking-amount">{formatCurrency(log.amount)}</span>}
           </div>
-        )}
 
-        {log.notes && (
-          <p className="booking-notes">
-            <FileText size={18} strokeWidth={1.75} aria-hidden="true" />
-            <span>{log.notes}</span>
-          </p>
-        )}
+          {(summary || log.photos.length > 0) && (
+            <div className="booking-summary-row">
+              <p className="booking-services booking-summary">
+                {summary}
+                {event && <span className="booking-event">{event}</span>}
+              </p>
+              {log.photos.length > 0 && (
+                <span className="booking-photo-hint" aria-label={`${log.photos.length} reference photos`}>
+                  <Images size={15} strokeWidth={1.75} />
+                  {log.photos.length}
+                </span>
+              )}
+            </div>
+          )}
 
-        <PhotoStrip photos={log.photos} />
-
-        {isAdmin && log.privateNotes && (
-          <p className="booking-private">
-            <LockKeyhole size={16} strokeWidth={1.75} />
-            <span>{log.privateNotes}</span>
-          </p>
-        )}
-
-        {isAdmin && (
-          <div className="booking-admin">
+          <div className="booking-foot">
             <StatusPill kind={log.status} />
-            {isPartPaid(log) ? (
-              <span className="pill pill-partial">
-                Part paid {formatCurrency(log.paidAmount)} of {formatCurrency(log.amount)}
-              </span>
-            ) : (
-              <StatusPill kind={log.paymentStatus} />
-            )}
-            {!log.own && <span className="booking-referral">via {log.referrerName || "referral"}</span>}
-            <span className="booking-admin-actions" onClick={(e) => e.stopPropagation()}>
-              {log.clientPhone && (
-                <a href={telHref(log.clientPhone)} className="round-btn" aria-label={`Call ${log.clientName || "client"}`}>
-                  <Phone size={15} strokeWidth={1.6} />
-                </a>
-              )}
-              {onEdit && (
-                <button type="button" className="round-btn edit-pill" onClick={onEdit} aria-label={`Edit booking for ${log.clientName || "this client"}`}>
-                  <PencilLine size={16} strokeWidth={1.7} />
-                </button>
-              )}
-              <MoreMenu log={log} onDelete={onDelete} />
-            </span>
-          </div>
-        )}
-      </div>
+            {isAdmin &&
+              (isPartPaid(log) ? (
+                <span className="pill pill-partial">Part paid</span>
+              ) : (
+                <StatusPill kind={log.paymentStatus} />
+              ))}
 
-    </article>
+          </div>
+        </div>
+        <ChevronRight size={20} strokeWidth={1.75} className="booking-chevron" aria-hidden="true" />
+      </article>
+      {open && <BookingSheet log={log} onClose={() => setOpen(false)} onEdit={onEdit} />}
+    </>
   );
 }

@@ -14,7 +14,7 @@ export function MoreMenu({ log, onDelete }: { log: WorkLog; onDelete?: () => voi
   const { logs } = useLogs();
   // Always build the PDF from the latest saved version of this booking.
   const latest = () => logs.find((l) => l.id === log.id) ?? log;
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
 
   function toggle() {
@@ -23,7 +23,14 @@ export function MoreMenu({ log, onDelete }: { log: WorkLog; onDelete?: () => voi
     if (r) {
       // Laptop screens zoom the page; convert screen pixels back (see index.css).
       const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
-      setPos({ top: (r.bottom + 8) / z, right: (window.innerWidth - r.right) / z });
+      const right = (window.innerWidth - r.right) / z;
+      // Not enough room below (e.g. button at the bottom of a sheet): open upwards.
+      const MENU_H = 200;
+      setPos(
+        r.bottom + 8 + MENU_H > window.innerHeight
+          ? { bottom: (window.innerHeight - r.top + 8) / z, right }
+          : { top: (r.bottom + 8) / z, right }
+      );
     }
     setOpen(true);
   }
@@ -67,7 +74,7 @@ export function MoreMenu({ log, onDelete }: { log: WorkLog; onDelete?: () => voi
             <div
               className="more-menu"
               role="menu"
-              style={{ top: pos.top, right: Math.max(12, pos.right) }}
+              style={{ top: pos.top, bottom: pos.bottom, right: Math.max(12, pos.right) }}
               onClick={(e) => e.stopPropagation()}
             >
               <button role="menuitem" className="more-item" onClick={run(() => void saveInvoice(latest()))}>

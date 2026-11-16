@@ -4068,7 +4068,7 @@ button,
 
 /* Always keep room for the scrollbar, so a long day (page scrolls) and a
    short one (no scroll) give the calendar exactly the same width. */
-html { scrollbar-gutter: stable; }
+/* scrollbar-gutter removed: scrollbars are hidden app-wide */
 
 /* ---------- quote / invoice builder ---------- */
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -4793,3 +4793,134 @@ html { scrollbar-gutter: stable; }
   .bookings-top > .page-head,
   .bookings-top .chip-bar { padding-left: 72px; padding-right: 72px; }
 }
+
+/* ---------- compact booking card (tap for details) ---------- */
+.booking-compact { padding: 14px 16px; gap: 12px; }
+.booking-compact .booking-start { font-size: 18px; }
+.booking-compact .booking-client { font-size: 18px; }
+.booking-compact .booking-amount { font-size: 18px; }
+.booking-summary {
+  margin: 2px 0 0;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.booking-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.booking-photo-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: 0 4px;
+}
+.booking-foot-end { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+.booking-foot-end .round-btn { width: 36px; height: 36px; }
+.booking-chevron { color: var(--ink-3); margin-right: -6px; }
+.booking-wine .booking-chevron,
+.booking-wine .booking-photo-hint { color: rgba(251, 243, 234, 0.7); }
+.booking-compact.is-interactive:active { background: rgba(66, 12, 21, 0.03); }
+
+/* ---------- booking details sheet ---------- */
+.booking-sheet { display: grid; gap: 14px; }
+.bs-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.bs-name { margin: 0; font-family: var(--font-title); font-size: 26px; font-weight: 600; color: var(--oxblood); line-height: 1.15; }
+.bs-when { margin: 4px 0 0; color: var(--ink-2); font-size: 15px; }
+.bs-amount { font-size: 22px; font-weight: 700; color: var(--oxblood); white-space: nowrap; }
+.bs-pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bs-actions { display: flex; gap: 8px; }
+.bs-actions .more-btn { width: 44px; height: 44px; flex: none; }
+.bs-action {
+  flex: 1;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(66, 12, 21, 0.25);
+  background: transparent;
+  color: var(--oxblood);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.bs-action.primary { background: var(--oxblood); color: var(--on-dark); border-color: var(--oxblood); }
+.bs-action:active { transform: scale(0.97); }
+.bs-section { display: grid; gap: 8px; }
+.bs-label { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.bs-services { list-style: none; margin: 0; padding: 4px 14px; background: var(--surface); border-radius: 14px; }
+.bs-services li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 16px; }
+.bs-services li + li { border-top: 0.5px solid var(--separator); }
+.bs-rate { font-weight: 600; white-space: nowrap; }
+.bs-meta { display: flex; flex-wrap: wrap; gap: 14px; }
+.bs-pay .primary-btn, .bs-pay .ghost-btn { margin: 0; }
+.booking-sheet .booking-notes, .booking-sheet .booking-private { margin: 0; }
+
+/* compact card: Call under the time, › centred on the right edge */
+.booking-compact { position: relative; padding-right: 34px; }
+.booking-compact .booking-chevron { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin: 0; }
+.booking-call { width: 36px; height: 36px; margin-top: 10px; }
+.booking-compact .pill { height: 26px; padding: 0 9px 0 7px; gap: 5px; font-size: 12.5px; }
+.booking-compact .pill svg { width: 13px; height: 13px; }
+.booking-compact .booking-foot { gap: 5px; }
+.booking-summary-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.booking-summary-row .booking-summary { flex: 1; min-width: 0; }
+.booking-summary-row .booking-photo-hint { flex: none; padding: 0; }
+
+/* ---------- compact card: same height everywhere ---------- */
+.booking-compact { min-height: 128px; align-items: start; }
+.booking-compact .booking-summary {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(2 * 1.4em); /* always two lines tall, so cards line up */
+  line-height: 1.4;
+}
+.booking-compact .booking-client { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.booking-compact .booking-head { min-width: 0; }
+
+
+/* ---------- laptop calendar: day list ends above the screen bottom ---------- */
+@media (min-width: 1024px) {
+  .calendar-page .agenda {
+    max-height: calc(100vh / var(--z, 1) - 96px - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Sheet actions: last row of the sheet, in line with the payment buttons */
+.booking-sheet .bs-actions { margin-top: 2px; padding-bottom: calc(16px + var(--safe-bottom)); }
+
+/* No visible scrollbars anywhere (pages, sheets, lists). Scrolling itself
+   still works with wheel, trackpad, touch and keyboard. */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* Floating scrollbar thumb (see utils/overlayScrollbar.ts) */
+#ov-thumb {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 4px;
+  border-radius: 999px;
+  background: rgba(66, 12, 21, 0.38);
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+#ov-thumb.on { opacity: 1; transition-duration: 0.12s; }
+@media (prefers-reduced-motion: reduce) { #ov-thumb { transition: none; } }
