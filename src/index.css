@@ -4,7 +4,7 @@
    Playfair Display is reserved for titles and the wordmark, echoing the logo. */
 
 :root {
-  --cream: #f8f2ea;
+  --cream: #f4ece1;
   --surface: #ffffff;
   --ink: #3f1715;
   --ink-2: #6e5446;
@@ -113,7 +113,7 @@ p {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: calc(8px + var(--safe-top)) 12px 8px;
-  background: rgba(248, 242, 234, 0.62);
+  background: rgba(244, 236, 225, 0.62);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   border-bottom: 0.5px solid var(--separator);
@@ -498,7 +498,7 @@ p {
   z-index: 10;
   margin: 0 -16px 14px;
   padding: 8px 0;
-  background: rgba(248, 242, 234, 0.62);
+  background: rgba(244, 236, 225, 0.62);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
 }
@@ -1130,7 +1130,7 @@ p {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 4px 8px;
-  background: rgba(248, 242, 234, 0.92);
+  background: rgba(244, 236, 225, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid var(--separator);
@@ -1895,7 +1895,7 @@ textarea.field-input {
 /* Header + chip bar: same frosted density so they read as one surface. */
 .masthead,
 .chip-bar {
-  background: rgba(248, 242, 234, 0.8);
+  background: rgba(244, 236, 225, 0.8);
 }
 
 /* New button: frosted cream glass so the outline holds on wine and cream. */
@@ -2739,7 +2739,7 @@ textarea.field-input {
   z-index: 90;
   display: grid;
   place-items: center;
-  background: rgba(248, 242, 234, 0.82);
+  background: rgba(244, 236, 225, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   animation: fade 0.25s ease-out;
@@ -4051,7 +4051,7 @@ button,
   margin: 0 0 6px 6px;
   padding: 4px 11px;
   border-radius: 999px;
-  background: rgba(248, 242, 234, 0.78);
+  background: rgba(244, 236, 225, 0.78);
   backdrop-filter: saturate(180%) blur(16px);
   -webkit-backdrop-filter: saturate(180%) blur(16px);
 }
@@ -4699,7 +4699,7 @@ button,
     z-index: 12;
     margin: 0 -16px 12px;
     padding: calc(10px + var(--safe-top)) 16px 10px;
-    background: rgba(248, 242, 234, 0.72);
+    background: rgba(244, 236, 225, 0.72);
     backdrop-filter: saturate(180%) blur(24px);
     -webkit-backdrop-filter: saturate(180%) blur(24px);
   }
@@ -4711,7 +4711,7 @@ button,
     z-index: 12;
     margin: 0 -16px 14px;
     padding-top: var(--safe-top);
-    background: rgba(248, 242, 234, 0.72);
+    background: rgba(244, 236, 225, 0.72);
     backdrop-filter: saturate(180%) blur(24px);
     -webkit-backdrop-filter: saturate(180%) blur(24px);
     border-bottom: 0.5px solid var(--separator);
@@ -4751,7 +4751,7 @@ button,
   top: var(--header-h, 0px);
   z-index: 12;
   margin: 0 -16px 12px;
-  background: rgba(248, 242, 234, 0.72);
+  background: rgba(244, 236, 225, 0.72);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
 }
@@ -5093,3 +5093,20 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 
 /* Tap flash off on all controls (Android draws a grey/blue box on tap) */
 button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-color: transparent; }
+
+/* White on cream: a hairline warm edge + faint lift so components read clearly.
+   Drawn with box-shadow (no layout shift); fields keep their inner focus ring. */
+:root { --edge: 0 0 0 1px rgba(66, 12, 21, 0.07), 0 1px 3px rgba(63, 23, 21, 0.06); }
+.service-option:not(.active),
+.group,
+.bill,
+.bs-services,
+.quote-line,
+.dash-section > :not(.dash-section-title):not(.dash-legend),
+.dash-collect-box,
+.account-card,
+.ledger:not(.pinned),
+.agenda,
+.month-row-body { box-shadow: var(--edge); }
+.field-input:not(:focus):not(:focus-visible) { box-shadow: 0 0 0 1px rgba(66, 12, 21, 0.08); }
+.dash-section > .dash-collect { box-shadow: var(--edge); }
