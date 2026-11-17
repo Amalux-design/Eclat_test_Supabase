@@ -5096,7 +5096,7 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
 
 /* White on cream: a hairline warm edge + faint lift so components read clearly.
    Drawn with box-shadow (no layout shift); fields keep their inner focus ring. */
-:root { --edge: 0 0 0 1px rgba(66, 12, 21, 0.07), 0 1px 3px rgba(63, 23, 21, 0.06); }
+:root { --edge: 0 0 0 1px rgba(66, 12, 21, 0.04), 0 1px 2px rgba(63, 23, 21, 0.04); }
 .service-option:not(.active),
 .group,
 .bill,
@@ -5108,5 +5108,5 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
 .ledger:not(.pinned),
 .agenda,
 .month-row-body { box-shadow: var(--edge); }
-.field-input:not(:focus):not(:focus-visible) { box-shadow: 0 0 0 1px rgba(66, 12, 21, 0.08); }
+.field-input:not(:focus):not(:focus-visible) { box-shadow: 0 0 0 1px rgba(66, 12, 21, 0.05); }
 .dash-section > .dash-collect { box-shadow: var(--edge); }
