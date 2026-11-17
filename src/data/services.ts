@@ -34,8 +34,11 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
     services: [
       { name: "Occasional Glam", price: 5000, note: "By the Éclat team" },
       { name: "Signature Occasional", price: 8000, note: "By Harsha" },
-      { name: "Signature Grooming", price: 5000, note: "Calicut only" },
     ],
+  },
+  {
+    title: "Groom",
+    services: [{ name: "Signature Grooming", price: 5000, note: "Calicut only" }],
   },
   {
     title: "Saree draping",
