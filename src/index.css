@@ -5054,3 +5054,42 @@ button,
   .dash-collect-box { padding: 12px; }
   .dash-collect-box b { font-size: 17px; }
 }
+
+/* ---------- focus & field audit ----------
+   Rings are drawn INSIDE the element, so scrolling sheets, cards and the chip
+   row can never clip them (the outside ring was cut off at the edges). */
+:focus-visible { outline: 2px solid var(--gilt); outline-offset: -2px; }
+:focus:not(:focus-visible) { outline: none; }
+
+.field-input:focus,
+.field-input:focus-visible,
+textarea.field-input:focus,
+select.field-input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gilt);
+}
+.bill-input:focus-within { box-shadow: inset 0 0 0 2px var(--gilt); }
+.search-pill-input:focus { outline: none; }
+.photo-viewer :focus-visible { outline-color: var(--gilt-soft); }
+.booking-wine :focus-visible,
+.dash-hero :focus-visible,
+.ledger.pinned :focus-visible,
+.calendar-card :focus-visible { outline-color: var(--gilt-soft); }
+
+/* Number fields: no browser up/down arrows (they clashed with the pill shape) */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Autofill: keep the app's field colours instead of the browser's yellow/blue */
+.field-input:-webkit-autofill,
+.field-input:-webkit-autofill:hover,
+.field-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ink);
+  -webkit-box-shadow: 0 0 0 100px var(--surface) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+.field-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 100px var(--surface) inset, inset 0 0 0 2px var(--gilt); }
+
+/* Tap flash off on all controls (Android draws a grey/blue box on tap) */
+button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-color: transparent; }
