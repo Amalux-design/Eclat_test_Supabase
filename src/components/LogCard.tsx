@@ -8,8 +8,6 @@ import { formatCurrency, formatTime, isPartPaid, parseWorks, telHref, workLabel 
 
 interface LogCardProps {
   log: WorkLog;
-  /** Kept for older call sites; deleting now lives in the details sheet. */
-  onDelete?: () => void;
   /** Opens the booking form (from the details sheet). */
   onEdit?: () => void;
   /** Show a short date above the time, for lists that span several days. */

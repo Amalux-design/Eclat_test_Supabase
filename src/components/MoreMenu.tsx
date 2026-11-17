@@ -39,11 +39,12 @@ export function MoreMenu({ log, onDelete }: { log: WorkLog; onDelete?: () => voi
     if (!open) return;
     const close = () => setOpen(false);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("scroll", close, { passive: true });
+    // Capture: also closes when a sheet or list scrolls, not only the page.
+    document.addEventListener("scroll", close, { capture: true, passive: true });
     window.addEventListener("resize", close);
     window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("scroll", close);
+      document.removeEventListener("scroll", close, { capture: true });
       window.removeEventListener("resize", close);
       window.removeEventListener("keydown", onKey);
     };

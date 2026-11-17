@@ -4999,7 +4999,6 @@ button,
 .dash-grid { stroke: rgba(66, 12, 21, 0.09); stroke-width: 1; }
 .dash-axis { font-size: 10px; fill: var(--ink-2); font-family: var(--font-fin); }
 .dash-hover { fill: rgba(66, 12, 21, 0.06); }
-.dash-bar { transform-box: fill-box; transform-origin: bottom; animation: dash-grow-y 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .dash-tip { margin: 6px 0 0; min-height: 20px; font-size: 13px; }
 .dash-hint { color: var(--ink-3); }
 .dash-table summary { margin-top: 6px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
@@ -5038,7 +5037,7 @@ button,
 @keyframes dash-grow-x { from { transform: scaleX(0); } }
 @keyframes dash-ring { from { stroke-dashoffset: 276.5; } to { stroke-dashoffset: var(--ring-off); } }
 @media (min-width: 1024px) { .dash-hero-total { font-size: 34px; } }
-@media (prefers-reduced-motion: reduce) { .dash-bar, .dash-grow-x, .dash-grow-y, .dash-ring-fill { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .dash-grow-x, .dash-grow-y, .dash-ring-fill { animation: none; } }
 
 /* Dashboard: crisp chart (drawn at real width), small screens */
 .dash-chart svg { width: 100%; height: auto; max-width: 100%; }

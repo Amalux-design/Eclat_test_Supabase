@@ -37,5 +37,19 @@ export function installOverlayScrollbar(): void {
     hide = window.setTimeout(() => thumb.classList.remove("on"), 900);
   };
 
-  document.addEventListener("scroll", (e) => update(e.target), { capture: true, passive: true });
+  // At most one layout read/write per frame, however many scroll events fire.
+  let pending: EventTarget | null = null;
+  let frame = 0;
+  document.addEventListener(
+    "scroll",
+    (e) => {
+      pending = e.target;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update(pending);
+      });
+    },
+    { capture: true, passive: true }
+  );
 }

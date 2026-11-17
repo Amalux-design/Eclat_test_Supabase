@@ -104,10 +104,10 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
               <section className="bs-section">
                 <h4 className="bs-label">{log.eventType ? `Services for ${log.eventType.toLowerCase()}` : "Services"}</h4>
                 <ul className="bs-services">
-                  {services.map((s) => {
+                  {services.map((s, i) => {
                     const rate = servicePrice(s.name) ?? s.price ?? 0;
                     return (
-                      <li key={s.name}>
+                      <li key={`${s.name}-${i}`}>
                         <span>{withQty(s.name, s.qty)}</span>
                         {isAdmin && rate > 0 && <span className="bs-rate">{formatCurrency(rate * s.qty)}</span>}
                       </li>

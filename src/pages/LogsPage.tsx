@@ -7,8 +7,6 @@ import { LogCard } from "../components/LogCard";
 import { LogForm } from "../components/LogForm";
 import { FAB } from "../components/FAB";
 import { Loader } from "../components/Loader";
-import { useConfirm } from "../components/ConfirmDialog";
-import { useNotice } from "../components/Notice";
 import { addDays, formatDateHeading, todayISO, weekRange } from "../utils/format";
 import type { WorkLog, WorkLogInput } from "../types";
 
@@ -61,10 +59,8 @@ function shortDate(iso: string): string {
 }
 
 export function LogsPage() {
-  const { logs, loading, error, addLog, editLog, removeLog } = useLogs();
+  const { logs, loading, error, addLog, editLog } = useLogs();
   const { isAdmin } = useAuth();
-  const confirm = useConfirm();
-  const notify = useNotice();
   const [chip, setChip] = useState<ChipId>("today");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<WorkLog | null>(null);
@@ -196,21 +192,6 @@ export function LogsPage() {
   const multiDay = activeChip !== "today" && activeChip !== "tomorrow";
   const open = isAdmin ? (log: WorkLog) => setEditing(log) : undefined;
 
-  async function handleDelete(log: WorkLog) {
-    const ok = await confirm({
-      title: "Delete booking?",
-      message: `${log.clientName || "This booking"} will be removed for everyone, including assistants.`,
-      confirmLabel: "Delete",
-      destructive: true,
-    });
-    if (!ok) return;
-    try {
-      await removeLog(log.id);
-    } catch (err) {
-      notify(err instanceof Error ? err.message : "Couldn't delete. Try again.", "error");
-    }
-  }
-
   return (
     <div className="page bookings-page">
       {/* Title + filters scroll as one frosted block (phones held upright). */}
@@ -287,7 +268,6 @@ export function LogsPage() {
               tone="wine"
               dateLabel={shortDate(log.date)}
               onEdit={open && (() => open(log))}
-              onDelete={isAdmin ? () => handleDelete(log) : undefined}
             />
           ))}
         </section>
@@ -309,7 +289,6 @@ export function LogsPage() {
               tone="wine"
               dateLabel={multiDay ? shortDate(log.date) : undefined}
               onEdit={open && (() => open(log))}
-              onDelete={isAdmin ? () => handleDelete(log) : undefined}
             />
           ))}
         </section>
@@ -333,8 +312,7 @@ export function LogsPage() {
                   key={log.id}
                   log={log}
                   onEdit={open && (() => open(log))}
-                  onDelete={isAdmin ? () => handleDelete(log) : undefined}
-                />
+                    />
               ))}
             </div>
           </section>
