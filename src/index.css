@@ -5109,3 +5109,152 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
 .month-row-body { box-shadow: var(--edge); }
 .field-input:not(:focus):not(:focus-visible) { box-shadow: 0 0 0 1px rgba(66, 12, 21, 0.05); }
 .dash-section > .dash-collect { box-shadow: var(--edge); }
+
+/* ---------- solid headers: no frosted glass ---------- */
+/* The app header and the sticky page titles / filter bars are plain cream,
+   so content scrolling underneath never shows through. */
+.masthead,
+.chip-bar,
+.calendar-page > .page-head,
+.earnings-page > .page-head,
+.bookings-top {
+  background: var(--cream);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.bookings-top .chip-bar { background: transparent; }
+
+/* ---------- sheet grab handle: drag down to close (phones & tablets) ---------- */
+/* The handle sits in the sticky header so it stays in view while the sheet
+   scrolls; the header is solid like the app header. Dragging: useSheet.ts. */
+.modal-sheet::before { display: none; }
+.modal-header {
+  position: sticky;
+  padding-top: 16px;
+  background: var(--cream);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.modal-header::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: 3px;
+  background: rgba(63, 23, 21, 0.2);
+}
+@media (min-width: 1024px) {
+  .modal-header { padding-top: 4px; }
+  .modal-header::before { display: none; }
+}
+
+/* Sheet dim on its own layer: dragging a sheet fades it with opacity
+   (compositor only) instead of repainting the backdrop colour every frame. */
+.modal-overlay { background: transparent; }
+.modal-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* behind the sheet, inside the overlay's stacking context */
+  background: rgba(30, 12, 10, 0.4);
+  opacity: var(--dim, 1);
+  transition: opacity var(--dim-ease, 0s) ease;
+  will-change: opacity;
+}
+.modal-sheet { touch-action: pan-y; }
+
+/* ---------- booking sheet, restructured: who/when → facts → receipt → payment → actions ---------- */
+.bs-bar { border-bottom: 0; padding-bottom: 0; }
+.booking-sheet { gap: 20px; padding-top: 0; }
+.bs-head { display: block; }
+.bs-head .bs-name { font-size: 28px; }
+.bs-head .bs-when { margin: 4px 0 10px; font-size: 15px; color: var(--ink-2); }
+
+/* Facts: one quiet hairline list, no card */
+.bs-facts { list-style: none; margin: 0; padding: 0; border-block: 0.5px solid var(--separator); }
+.bs-facts > li + li { border-top: 0.5px solid var(--separator); }
+.bs-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink);
+  text-decoration: none;
+}
+.bs-fact > svg { flex: none; margin-top: 1px; color: var(--ink-2); }
+.bs-fact-link > svg:first-child { color: var(--oxblood); }
+.bs-fact-text { flex: 1; min-width: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.bs-fact-go { opacity: 0.45; }
+.bs-fact-link:active { opacity: 0.6; }
+.bs-fact-private > svg { color: var(--gilt); }
+.bs-fact-private .bs-fact-text { color: var(--ink-2); }
+
+/* Receipt: rows on the cream, one firm rule above the total */
+.bs-receipt { list-style: none; margin: 0; padding: 0; }
+.bs-receipt li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 9px 0;
+  font-size: 15.5px;
+}
+.bs-receipt li + li { border-top: 0.5px solid var(--separator); }
+.bs-num { font-family: var(--font-fin); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bs-included { font-size: 13.5px; color: var(--ink-3); white-space: nowrap; }
+.bs-adjust { color: var(--ink-2); }
+.bs-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 2px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(66, 12, 21, 0.3);
+  font-weight: 600;
+  color: var(--oxblood);
+}
+.bs-total .bs-num { font-size: 20px; font-weight: 700; }
+
+/* Payment: thin gold bar, one line, one button */
+.booking-sheet .bs-pay { display: grid; gap: 10px; }
+.bs-progress { height: 4px; border-radius: 2px; background: rgba(66, 12, 21, 0.1); overflow: hidden; }
+.bs-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gilt);
+  transition: width 0.5s var(--ease-flow);
+}
+.bs-pay-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-fin);
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.bs-due { color: var(--oxblood); font-weight: 600; }
+.bs-paid { color: var(--gilt); font-weight: 600; }
+.booking-sheet .bs-pay .primary-btn { margin: 4px 0 0; min-height: 48px; border-radius: 999px; }
+.bs-pay-choice { display: grid; gap: 10px; margin-top: 4px; animation: settle-in 0.3s var(--ease-soft); }
+.bs-pay-options { display: flex; gap: 8px; }
+.bs-action.is-on { background: rgba(66, 12, 21, 0.06); }
+.bs-pay .partial-form { margin: 0; }
+.bs-pay-cancel { justify-self: center; font-size: 15px; }
+/* Header is just the handle strip (still sticky + draggable); close sits in the name row. */
+.modal-header.bs-bar { display: block; min-height: 22px; padding: 0; }
+.bs-head { position: relative; padding-right: 44px; }
+.bs-close { position: absolute; top: -6px; right: -8px; }
+@media (min-width: 1024px) { .modal-header.bs-bar { min-height: 14px; } }
+
+/* Search lens dead-centre: the pill is 36px with a 1px border (34px inside),
+   so a 30px icon sits at 2px/2px. Explicit top: iOS placed it by flex static
+   position, which drifted down. The lens handle pulls the eye down-right, so
+   the glyph is nudged half a pixel back (optical centre). */
+.search-pill .search-pill-icon { top: 2px; left: 2px; }
+.search-pill:not(.open) .search-pill-icon .lens { transform: translate(-0.5px, -0.5px); }

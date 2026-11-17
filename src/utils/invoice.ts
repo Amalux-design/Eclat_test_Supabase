@@ -23,9 +23,96 @@ function pdfText(s: string): string {
   return s.replace(/₹\s?/g, "Rs. ").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-");
 }
 
-function shortDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
-  return `${d}-${m}-${y.slice(2)}`;
+type Doc = import("jspdf").jsPDF;
+const PT = 25.4 / 72; // mm per point
+const SCALE = 12; // canvas pixels per mm for text drawn as an image (~300 dpi)
+const LATIN1 = /^[\x00-\xff]*$/;
+let measurer: CanvasRenderingContext2D | null = null;
+
+/** The CSS font matching the PDF's current font, at canvas scale. */
+function cssFont(doc: Doc): string {
+  const { fontName, fontStyle } = doc.getFont();
+  const italic = fontStyle.includes("italic") ? "italic " : "";
+  const bold = fontStyle.includes("bold") ? "bold " : "";
+  const family = fontName === "times" ? "Georgia, serif" : "Helvetica, Arial, sans-serif";
+  return `${italic}${bold}${doc.getFontSize() * PT * SCALE}px ${family}`;
+}
+
+/** Gap between wrapped lines at the current size (jsPDF's own line height). */
+function lineGap(doc: Doc): number {
+  return doc.getFontSize() * PT * 1.15;
+}
+
+/**
+ * Wrap text to a width. Latin text uses the PDF font's metrics; anything the
+ * built-in fonts can't draw (Malayalam, emoji) is measured with the device
+ * font, because `put` draws it as an image.
+ */
+function wrap(doc: Doc, text: string, width: number): string[] {
+  const t = pdfText(text);
+  if (LATIN1.test(t)) return doc.splitTextToSize(t, width);
+  const ctx = (measurer ??= document.createElement("canvas").getContext("2d")!);
+  ctx.font = cssFont(doc);
+  const max = width * SCALE;
+  const lines: string[] = [];
+  for (const para of t.split("\n")) {
+    let line = "";
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && ctx.measureText(next).width > max) {
+        lines.push(line);
+        line = word;
+      } else line = next;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * Draw lines of text in the current font, size and colour. A line the
+ * built-in (Latin-1) fonts can't draw is rendered by the device, which shapes
+ * Malayalam properly, and placed as an image on the same baseline.
+ */
+function put(
+  doc: Doc,
+  lines: string | string[],
+  x: number,
+  y: number,
+  opts: { align?: "left" | "right" | "center"; lineH?: number } = {}
+): void {
+  const list = (Array.isArray(lines) ? lines : [lines]).map(pdfText);
+  const align = opts.align ?? "left";
+  const lineH = opts.lineH ?? lineGap(doc);
+  list.forEach((line, i) => {
+    const yy = y + i * lineH;
+    if (LATIN1.test(line)) {
+      doc.text(line, x, yy, { align });
+      return;
+    }
+    const font = cssFont(doc);
+    const canvas = document.createElement("canvas");
+    let ctx = canvas.getContext("2d")!;
+    ctx.font = font;
+    const m = ctx.measureText(line);
+    const px = doc.getFontSize() * PT * SCALE;
+    const asc = Math.ceil(Math.max(m.actualBoundingBoxAscent || 0, px));
+    const desc = Math.ceil(Math.max(m.actualBoundingBoxDescent || 0, px * 0.35));
+    const pad = 4;
+    canvas.width = Math.ceil(m.width) + pad * 2;
+    canvas.height = asc + desc + pad * 2;
+    ctx = canvas.getContext("2d")!; // resizing resets the context
+    ctx.font = font;
+    const colour = doc.getTextColor();
+    ctx.fillStyle = /^#[0-9a-f]{6}$/i.test(colour) ? colour : "#3f1715";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(line, pad, pad + asc);
+    const w = canvas.width / SCALE;
+    const h = canvas.height / SCALE;
+    const textW = m.width / SCALE;
+    const left = align === "right" ? x - textW - pad / SCALE : align === "center" ? x - w / 2 : x - pad / SCALE;
+    doc.addImage(canvas.toDataURL("image/png"), "PNG", left, yy - (pad + asc) / SCALE, w, h, undefined, "FAST");
+  });
 }
 
 export function invoiceNumber(log: WorkLog): string {
@@ -72,10 +159,9 @@ async function logoImage(fill: string): Promise<{ data: string; ratio: number } 
 export type DocKind = "invoice" | "quote";
 
 export interface DocRow {
-  date?: string; // ISO; shown in a Date column when any row has one
   label: string;
   rate?: number; // per unit
-  qty?: number; // e.g. 2 for "2× Classic Bridal", or people
+  qty?: number; // e.g. 2 for "2× Classic Bridal"; none on an adjustment line
   amount: number;
 }
 
@@ -89,14 +175,8 @@ export interface DocData {
   venue?: string;
   rows: DocRow[];
   rowsNote?: string; // small line under the table
-  extras: { label: string; amount: number }[]; // travel etc., added after the subtotal
   notes: string[];
   received?: number; // invoices: paid so far
-  advance?: { amount: number; date: string; method: string; eventDates: string }; // invoice page 2
-}
-
-export function docTotal(d: Pick<DocData, "rows" | "extras">): number {
-  return d.rows.reduce((s, r) => s + r.amount, 0) + d.extras.reduce((s, e) => s + e.amount, 0);
 }
 
 /* ---------- from a saved booking (the invoice button on a card) ---------- */
@@ -133,7 +213,6 @@ export function bookingToDoc(log: WorkLog): DocData {
     rows: lineItems(log),
     rowsNote:
       log.bridesmaids > 0 ? `Includes makeup for ${log.bridesmaids} bridesmaid${log.bridesmaids > 1 ? "s" : ""}` : undefined,
-    extras: [],
     notes: [],
     received: receivedOf(log),
   };
@@ -204,7 +283,10 @@ async function buildDocument(d: DocData): Promise<void> {
   doc.setFontSize(10.5);
   doc.setTextColor(...INK);
   doc.text(pdfText(BUSINESS.name), M, y);
-  doc.text(pdfText(d.clientName || "Client"), colB, y);
+  // Long names wrap inside the right column instead of running off the page.
+  const nameLines = wrap(doc, d.clientName || "Client", R - colB);
+  const nameGap = lineGap(doc);
+  put(doc, nameLines, colB, y, { lineH: nameGap });
   doc.setFontSize(9);
   doc.setTextColor(...SOFT);
 
@@ -222,10 +304,10 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.text(wrapped, M, yA);
     yA += 4.4 * wrapped.length;
   }
-  let yB = y + 5;
+  let yB = y + 5 + nameGap * (nameLines.length - 1);
   for (const line of d.clientLines.filter(Boolean)) {
-    const wrapped = doc.splitTextToSize(pdfText(line), R - colB);
-    doc.text(wrapped, colB, yB);
+    const wrapped = wrap(doc, line, R - colB);
+    put(doc, wrapped, colB, yB);
     yB += 4.4 * wrapped.length;
   }
   y = Math.max(yA, yB) + 12;
@@ -238,23 +320,23 @@ async function buildDocument(d: DocData): Promise<void> {
     y += 5.5;
     doc.setFontSize(10.5);
     doc.setTextColor(...INK);
-    doc.text(pdfText(d.occasion), M, y);
+    const occasion = wrap(doc, d.occasion, R - M);
+    put(doc, occasion, M, y);
+    y += lineGap(doc) * (occasion.length - 1);
     if (d.venue) {
       y += 5;
       doc.setFontSize(9);
       doc.setTextColor(...SOFT);
-      const venue = doc.splitTextToSize(pdfText(d.venue), R - M);
-      doc.text(venue, M, y);
-      y += 4.4 * (venue.length - 1);
+      const venue = wrap(doc, d.venue, R - M);
+      put(doc, venue, M, y);
+      y += lineGap(doc) * (venue.length - 1);
     }
     y += 14;
   }
 
   // Services table. Detailed columns only when the rows need them.
-  const detailed = d.rows.some((r) => r.date || (r.qty ?? 1) > 1);
-  const cDate = M;
-  const hasDates = d.rows.some((r) => r.date);
-  const cService = hasDates ? M + 24 : M;
+  const detailed = d.rows.some((r) => (r.qty ?? 1) > 1);
+  const cService = M;
   const cRate = R - 62;
   const cQty = R - 34;
   // Content stops above the footer; anything that doesn't fit moves to a new page.
@@ -271,7 +353,6 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.setFontSize(8.5);
     doc.setTextColor(...GILT);
     if (detailed) {
-      if (hasDates) doc.text("Date", cDate, y);
       doc.text("Rate", cRate, y, { align: "right" });
       doc.text("Qty", cQty, y, { align: "center" });
     }
@@ -286,49 +367,40 @@ async function buildDocument(d: DocData): Promise<void> {
 
   const serviceWidth = detailed ? cRate - cService - 22 : R - M - 40;
   for (const row of d.rows) {
-    const label = doc.splitTextToSize(pdfText(row.label), serviceWidth);
-    if (room(5.5 * (label.length - 1) + 10.5)) tableHeader();
+    const label = wrap(doc, row.label, serviceWidth);
+    const gap = lineGap(doc);
+    if (room(gap * (label.length - 1) + 10.5)) tableHeader();
     doc.setTextColor(...INK);
     if (detailed) {
+      // Adjustment lines (discount, additional services) have no rate or quantity.
       doc.setTextColor(...SOFT);
-      if (row.date) doc.text(shortDate(row.date), cDate, y);
       if (row.rate != null) doc.text(money(row.rate), cRate, y, { align: "right" });
-      doc.text(String(row.qty ?? 1), cQty, y, { align: "center" });
+      if (row.qty != null) doc.text(String(row.qty), cQty, y, { align: "center" });
       doc.setTextColor(...INK);
     }
-    doc.text(label, cService, y);
+    put(doc, label, cService, y, { lineH: gap });
     doc.text(row.amount < 0 ? `- ${money(-row.amount)}` : money(row.amount), R, y, { align: "right" });
-    y += 5.5 * (label.length - 1);
+    y += gap * (label.length - 1);
     y += 3.5;
     doc.line(M, y, R, y);
     y += 7;
   }
   if (d.rowsNote) {
+    room(4);
     doc.setFontSize(9);
     doc.setTextColor(...SOFT);
-    doc.text(pdfText(d.rowsNote), M, y - 2);
+    put(doc, d.rowsNote, M, y - 2);
     y += 6;
   }
   y += 4;
 
   // Totals: right column, everything inside the margins (kept together)
-  room(48 + d.extras.length * 6.5);
-  const subtotal = d.rows.reduce((s, r) => s + r.amount, 0);
-  const total = docTotal(d);
+  room(48);
+  const total = d.rows.reduce((s, r) => s + r.amount, 0);
   const labelX = R - 70;
   const totalsTop = y;
   doc.setFontSize(10);
   doc.setTextColor(...SOFT);
-  if (d.extras.length) {
-    doc.text("Subtotal", labelX, y);
-    doc.text(money(subtotal), R, y, { align: "right" });
-    y += 6.5;
-    for (const e of d.extras) {
-      doc.text(pdfText(e.label), labelX, y);
-      doc.text(money(e.amount), R, y, { align: "right" });
-      y += 6.5;
-    }
-  }
   if (quote) {
     doc.setDrawColor(...WINE);
     doc.setLineWidth(0.4);
@@ -401,9 +473,9 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.setFontSize(9.5);
     doc.setTextColor(...INK);
     for (const n of notes) {
-      const wrapped = doc.splitTextToSize(pdfText(n), R - M);
+      const wrapped = wrap(doc, n, R - M);
       room(4.8 * wrapped.length + 1);
-      doc.text(wrapped, M, y);
+      put(doc, wrapped, M, y);
       y += 4.8 * wrapped.length + 1;
     }
   }
@@ -434,27 +506,12 @@ async function buildDocument(d: DocData): Promise<void> {
   doc.setPage(pages);
   doc.setFont("helvetica", "normal");
 
-  // Page 2: policy (quotes) or advance confirmation (invoices with an advance)
+  // Page 2: the booking policy (proposals)
   if (quote && BUSINESS.quotePolicy?.length) {
     await letterPage(doc, "Booking & payment policy", BUSINESS.quotePolicy);
-  } else if (!quote && d.advance && d.advance.amount > 0) {
-    const a = d.advance;
-    const balance = total - (d.received ?? a.amount);
-    const paras = [
-      `I have received an advance payment from ${d.clientName || "the client"} for the booking on ${a.eventDates}. The total booking amount is ${money(total)}${d.extras.length ? " including travel charges" : ""}, and the advance payment of ${money(a.amount)} was received on ${formatDateLong(a.date)}${a.method ? ` via ${a.method}` : ""}.`,
-      "The remaining balance is to be paid on the day of the event.",
-      ...notes.map((n) => `Note: ${n}`),
-    ];
-    const summary = [
-      `Booking date: ${a.eventDates}`,
-      `Total amount: ${money(total)}`,
-      `Advance received: ${money(a.amount)}`,
-      `Balance payable on event day: ${money(Math.max(balance, 0))}`,
-    ];
-    await letterPage(doc, "Advance payment confirmation", paras, summary, "Thank you for confirming the booking.");
   }
 
-  const safeName = (d.clientName || "client").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
+  const safeName = (d.clientName || "client").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "client";
   // A time stamp per download: phones otherwise reopen an older file with the same name.
   const now = new Date();
   const stamp = `${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
@@ -462,50 +519,43 @@ async function buildDocument(d: DocData): Promise<void> {
   await deliver(doc.output("blob"), fileName, () => doc.save(fileName));
 }
 
-/** A letter-style second page: heading, paragraphs, signature and a faint logo. */
-async function letterPage(
-  doc: import("jspdf").jsPDF,
-  title: string,
-  paragraphs: string[],
-  summary: string[] = [],
-  closing = ""
-): Promise<void> {
+/** A letter-style page: heading, paragraphs, signature and a faint logo. Long text continues on a new page. */
+async function letterPage(doc: Doc, title: string, paragraphs: string[]): Promise<void> {
   const M = 20;
   const R = 190;
+  const SIGN = 238; // signature baseline; text stops well above it
+  const STOP = SIGN - 12;
+  const LINE = 6.2;
   doc.addPage();
   let y = 34;
   doc.setFont("times", "bold");
   doc.setFontSize(16);
   doc.setTextColor(...WINE);
-  doc.text(pdfText(title), M, y);
+  put(doc, title, M, y);
   y += 12;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
   doc.setTextColor(...INK);
   for (const p of paragraphs) {
-    const wrapped = doc.splitTextToSize(pdfText(p), R - M);
-    doc.text(wrapped, M, y, { lineHeightFactor: 1.5 });
-    y += wrapped.length * 6.2 + 5;
-  }
-  if (summary.length) {
-    y += 2;
-    for (const s of summary) {
-      doc.text(pdfText(s), M, y);
-      y += 6.2;
+    let lines = wrap(doc, p, R - M);
+    while (lines.length) {
+      if (y > STOP) {
+        doc.addPage();
+        y = 34;
+      }
+      const chunk = lines.slice(0, Math.floor((STOP - y) / LINE) + 1);
+      put(doc, chunk, M, y, { lineH: LINE });
+      y += chunk.length * LINE;
+      lines = lines.slice(chunk.length);
     }
     y += 5;
   }
-  if (closing) {
-    doc.setFont("helvetica", "bold");
-    doc.text(pdfText(closing), M, y);
-    doc.setFont("helvetica", "normal");
-  }
 
-  // Signature and a faint logo
+  // Signature and a faint logo, on the last page
   doc.setFont("times", "italic");
   doc.setFontSize(12);
   doc.setTextColor(...INK);
-  doc.text(pdfText(BUSINESS.signature), M, 238);
+  put(doc, BUSINESS.signature, M, SIGN);
   doc.setFont("helvetica", "normal");
   const faint = await logoImage("#C9BDB4");
   if (faint) {
