@@ -9,9 +9,11 @@ import { useAuth } from "../context/AuthContext";
 import { useLogs } from "../context/LogsContext";
 import { useConfirm } from "./ConfirmDialog";
 import { useNotice } from "./Notice";
-import { servicePrice } from "../data/services";
+import { lineItems } from "../utils/lineItems";
 import {
   formatCurrency,
+  formatDateShort,
+  formatNumber,
   formatTime,
   isMapLink,
   mapsUrl,
@@ -27,23 +29,6 @@ interface BookingSheetProps {
   onClose: () => void;
   /** Opens the booking form (the page owns it). */
   onEdit?: () => void;
-}
-
-/** "Tue, 13 Oct" (with the year when it isn't this year). */
-function shortDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  return d.toLocaleDateString("en-IN", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    ...(sameYear ? {} : { year: "numeric" }),
-  });
-}
-
-/** Receipt figures: digits only; the ₹ sits on the total. */
-function figure(n: number): string {
-  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n);
 }
 
 /**
@@ -64,13 +49,11 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
   const received = receivedOf(log);
   const balance = log.amount - received;
 
-  // Receipt: menu price per service; a gap to the booked total shows as one adjustment line.
-  const rows = parseWorks(log.work)
-    .map(splitQty)
-    .map((s) => ({ ...s, rate: servicePrice(s.name) ?? s.price ?? 0 }));
-  const menuTotal = rows.reduce((sum, r) => sum + r.rate * r.qty, 0);
-  const priced = menuTotal > 0;
-  const adjust = priced && log.amount > 0 ? log.amount - menuTotal : 0;
+  // Receipt: the same lines as the invoice PDF. Itemised only when they explain
+  // the total (several services with menu prices); otherwise just the names.
+  const services = parseWorks(log.work).map(splitQty);
+  const items = lineItems(log);
+  const itemised = isAdmin && log.amount > 0 && items.some((it) => it.qty != null);
   const paidShare = log.amount > 0 ? Math.min(1, Math.max(0, received / log.amount)) : 0;
   const hasFacts = !!log.location || log.bridesmaids > 0 || !!log.notes || (isAdmin && !!log.privateNotes);
 
@@ -116,18 +99,20 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
     <Sheet label={`Booking: ${log.clientName || "client"}`} onClose={onClose}>
       {(close) => (
         <>
-          {/* Handle strip only (drag down to close); the close button sits beside the name. */}
-          <div className="modal-header bs-bar" />
+          {/* Handle strip (drag down to close). The close button rides in it, beside the
+              name, and stays in reach while the sheet scrolls. */}
+          <div className="modal-header bs-bar">
+            <button className="icon-btn bs-close" onClick={close} aria-label="Close">
+              <X size={20} />
+            </button>
+          </div>
 
           <div className="modal-body booking-sheet">
             {/* Who and when */}
             <div className="bs-head">
-              <button className="icon-btn bs-close" onClick={close} aria-label="Close">
-                <X size={20} />
-              </button>
               <h3 className="bs-name">{log.clientName || "Unnamed client"}</h3>
               <p className="bs-when">
-                {shortDate(log.date)} · {log.startTime ? formatTime(log.startTime) : "Any time"}
+                {formatDateShort(log.date, "auto")} · {log.startTime ? formatTime(log.startTime) : "Any time"}
                 {log.endTime && <> → ready {formatTime(log.endTime)}</>}
               </p>
               <div className="bs-pills">
@@ -172,27 +157,32 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
             )}
 
             {/* Receipt */}
-            {(rows.length > 0 || log.eventType) && (
+            {(services.length > 0 || log.eventType) && (
               <section className="bs-section">
                 <h4 className="bs-label">{log.eventType || "Services"}</h4>
-                {rows.length > 0 && (
+                {services.length > 0 && (
                   <ul className="bs-receipt">
-                    {rows.map((r, i) => (
-                      <li key={`${r.name}-${i}`}>
-                        <span>{withQty(r.name, r.qty)}</span>
-                        {isAdmin && priced && (
-                          <span className={r.rate > 0 ? "bs-num" : "bs-included"}>
-                            {r.rate > 0 ? figure(r.rate * r.qty) : "Included"}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                    {isAdmin && adjust !== 0 && (
-                      <li className="bs-adjust">
-                        <span>{adjust > 0 ? "Additional" : "Discount"}</span>
-                        <span className="bs-num">{adjust > 0 ? figure(adjust) : `− ${figure(-adjust)}`}</span>
-                      </li>
-                    )}
+                    {itemised
+                      ? items.map((it, i) => {
+                          const included = it.qty != null && it.amount === 0;
+                          return (
+                            <li key={`${it.label}-${i}`} className={it.adjustment ? "bs-adjust" : undefined}>
+                              <span>{it.qty != null ? withQty(it.label, it.qty) : it.label}</span>
+                              <span className={included ? "bs-included" : "bs-num"}>
+                                {included
+                                  ? "Included"
+                                  : it.amount < 0
+                                    ? `− ${formatNumber(-it.amount)}`
+                                    : formatNumber(it.amount)}
+                              </span>
+                            </li>
+                          );
+                        })
+                      : services.map((sv, i) => (
+                          <li key={`${sv.name}-${i}`}>
+                            <span>{withQty(sv.name, sv.qty)}</span>
+                          </li>
+                        ))}
                   </ul>
                 )}
                 {isAdmin && log.amount > 0 && (

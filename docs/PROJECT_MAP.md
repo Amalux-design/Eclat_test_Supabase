@@ -1,6 +1,6 @@
 # Project map
 
-Verified against the code on 2026-10-20.
+Verified against the code on 2026-11-18.
 
 ## Shape
 - `index.html` — inline splash (logo reveal; `.instant` mode when launched as an installed app), iOS launch images, fonts (Playfair Display, Jost, Pinyon Script).
@@ -16,10 +16,10 @@ Verified against the code on 2026-10-20.
 | Data | `src/context/LogsContext.tsx` (fetch, realtime, add/edit/remove/markPaid/recordPayment, conflict handling, `saving` count → logo shimmer), `src/api/client.ts` (every Supabase call; `ApiError` codes AUTH/CONFLICT/NOT_FOUND/VALIDATION/NETWORK/ERROR) |
 | Cache | `src/utils/localCache.ts` — last booking list per role in localStorage for instant first paint; cleared on sign-out |
 | Pages | `src/pages/CalendarPage.tsx`, `LogsPage.tsx` (sticky title + chips block, search, sticky date headings), `PaymentsPage.tsx` (year filter, totals card, Month/Client ledger, payment sheet) |
-| Booking UI | `LogForm.tsx`, `LogCard.tsx` (Edit pill, call, invoice, delete), `ServiceTiles.tsx` (tiles + qty stepper), `Photos.tsx` (picker, strip, viewer with prev/next), `Pickers.tsx` (date/time/select sheets) |
-| Documents | `src/utils/invoice.ts` (one PDF engine: invoice and quotation from a booking via the card's ⋯ menu `MoreMenu.tsx`; policy page, page breaks, time-stamped file names) |
+| Booking UI | `LogForm.tsx` (asks before discarding unsaved changes), `LogCard.tsx` (compact card: time, Call, name, price, services, badges, photo hint; tap → sheet), `BookingSheet.tsx` (details sheet on every tab: facts list, receipt, paid bar + Record payment, Call/Edit/⋯), `ServiceTiles.tsx` (tiles + qty stepper), `Photos.tsx` (picker, strip, viewer with prev/next), `Pickers.tsx` (date/time/select sheets) |
+| Documents | `src/utils/invoice.ts` (one PDF engine: invoice and quotation from the sheet's ⋯ menu `MoreMenu.tsx`; wrapping, page breaks, policy page, non-Latin text drawn as images, time-stamped file names). Price lines come from `utils/lineItems.ts`, shared with the booking sheet. |
 | Business data | `src/data/services.ts` (price menu, `servicePrice`), `src/data/business.ts` (address, phone, email, UPI/bank, quote policy, default note) |
-| Shell & motion | `AppHeader.tsx`, `BottomNav.tsx` (exports `TABS`), `utils/useSwipeTabs.ts` (finger-follow swipe between tabs, `data-swipe` entrance), `utils/splash.ts` (logo glides into header), `utils/useSheet.ts`, `Sheet.tsx`, `ConfirmDialog.tsx`, `Notice.tsx` |
+| Shell & motion | `AppHeader.tsx`, `BottomNav.tsx` (exports `TABS`), `utils/useSwipeTabs.ts` (finger-follow swipe between tabs, `data-swipe` entrance), `utils/splash.ts` (logo glides into header), `utils/useSheet.ts` (slide-away close, drag-down-to-close on phones/tablets, `requestClose` with `confirmDismiss`), `utils/backgroundLock.ts` (page behind any open overlay never scrolls), `Sheet.tsx`, `ConfirmDialog.tsx`, `Notice.tsx` |
 | Styles | `src/index.css` (tokens on `:root`, then layered sections; laptop block `@media (min-width:1024px)`; laptop zoom ≥1360px) |
 | Backend | `supabase/schema.sql`, `supabase/hardening.sql`, `supabase/backup.sql`, `supabase/README.md` |
 | Serverless | `api/keep-alive.js` + `vercel.json` cron (daily DB ping) |

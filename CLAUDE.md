@@ -21,6 +21,7 @@ Private booking/schedule app for a bridal makeup studio (Calicut). React 19 + Ty
 - Security lives in Postgres RLS (`supabase/schema.sql`) and `supabase/hardening.sql`, not in the UI. Never put the service_role key, backup secret, passwords or client data in code, docs or memory.
 
 ## Docs
+- `docs/REVIEW_WORKFLOW.md` — **run on every change without being asked**: checks, edge data, preview tests, docs, push rules
 - `docs/PROJECT_MAP.md` — architecture, files, data flow
 - `docs/DECISIONS.md` — why things are the way they are
 - `docs/KNOWN_ISSUES.md` — open issues, risks, lint warnings

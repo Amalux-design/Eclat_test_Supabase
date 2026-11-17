@@ -169,3 +169,20 @@ export function receivedOf(log: { paymentStatus: string; amount: number; paidAmo
 export function isPartPaid(log: { paymentStatus: string; amount: number; paidAmount: number }): boolean {
   return log.paymentStatus !== "PAID" && log.paidAmount > 0 && log.paidAmount < log.amount;
 }
+
+/** "Tue, 13 Oct"; adds the year when it isn't this year (`withYear: "auto"`). */
+export function formatDateShort(isoDate: string, withYear: "auto" | "never" = "never"): string {
+  const d = parseISODate(isoDate);
+  const year = withYear === "auto" && d.getFullYear() !== new Date().getFullYear();
+  return d.toLocaleDateString(CURRENCY_LOCALE, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    ...(year ? { year: "numeric" } : {}),
+  });
+}
+
+/** Indian digit grouping without the ₹ sign: 1,50,000. */
+export function formatNumber(n: number): string {
+  return new Intl.NumberFormat(CURRENCY_LOCALE, { maximumFractionDigits: 0 }).format(n);
+}

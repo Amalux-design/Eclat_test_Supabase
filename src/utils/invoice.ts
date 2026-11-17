@@ -4,8 +4,8 @@
 import type { WorkLog } from "../types";
 import { withBusy } from "../components/Loader";
 import { BUSINESS } from "../data/business";
-import { servicePrice } from "../data/services";
-import { formatDateLong, formatTime, parseWorks, receivedOf, splitQty, todayISO, withQty } from "./format";
+import { formatDateLong, formatNumber, formatTime, receivedOf, todayISO } from "./format";
+import { lineItems, type LineItem } from "./lineItems";
 
 const WINE: [number, number, number] = [70, 26, 28];
 const INK: [number, number, number] = [63, 23, 21];
@@ -15,7 +15,7 @@ const RULE: [number, number, number] = [225, 210, 196];
 
 // The PDF's built-in fonts have no ₹ glyph, so amounts are printed as "Rs.".
 function money(n: number): string {
-  return `Rs. ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n)}`;
+  return `Rs. ${formatNumber(n)}`;
 }
 
 // Standard PDF fonts are Latin-1: swap characters they can't draw.
@@ -26,7 +26,8 @@ function pdfText(s: string): string {
 type Doc = import("jspdf").jsPDF;
 const PT = 25.4 / 72; // mm per point
 const SCALE = 12; // canvas pixels per mm for text drawn as an image (~300 dpi)
-const LATIN1 = /^[\x00-\xff]*$/;
+/** True when every character exists in the built-in (Latin-1) PDF fonts. */
+const isLatin1 = (s: string): boolean => !/[Ā-￿]/.test(s);
 let measurer: CanvasRenderingContext2D | null = null;
 
 /** The CSS font matching the PDF's current font, at canvas scale. */
@@ -50,7 +51,7 @@ function lineGap(doc: Doc): number {
  */
 function wrap(doc: Doc, text: string, width: number): string[] {
   const t = pdfText(text);
-  if (LATIN1.test(t)) return doc.splitTextToSize(t, width);
+  if (isLatin1(t)) return doc.splitTextToSize(t, width);
   const ctx = (measurer ??= document.createElement("canvas").getContext("2d")!);
   ctx.font = cssFont(doc);
   const max = width * SCALE;
@@ -86,7 +87,7 @@ function put(
   const lineH = opts.lineH ?? lineGap(doc);
   list.forEach((line, i) => {
     const yy = y + i * lineH;
-    if (LATIN1.test(line)) {
+    if (isLatin1(line)) {
       doc.text(line, x, yy, { align });
       return;
     }
@@ -158,12 +159,8 @@ async function logoImage(fill: string): Promise<{ data: string; ratio: number } 
 
 export type DocKind = "invoice" | "quote";
 
-export interface DocRow {
-  label: string;
-  rate?: number; // per unit
-  qty?: number; // e.g. 2 for "2× Classic Bridal"; none on an adjustment line
-  amount: number;
-}
+/** One table row; the same lines the booking sheet shows (utils/lineItems). */
+export type DocRow = LineItem;
 
 export interface DocData {
   kind: DocKind;
@@ -180,24 +177,6 @@ export interface DocData {
 }
 
 /* ---------- from a saved booking (the invoice button on a card) ---------- */
-
-/** Menu prices per service; any difference from the booked total becomes one adjustment line. */
-function lineItems(log: WorkLog): DocRow[] {
-  const services = parseWorks(log.work).map(splitQty);
-  const priced: DocRow[] = services.map((s) => {
-    const rate = servicePrice(s.name) ?? s.price ?? 0;
-    return { label: s.name, rate, qty: s.qty, amount: rate * s.qty };
-  });
-  const menuTotal = priced.reduce((sum, l) => sum + l.amount, 0);
-  if (menuTotal === 0 || (services.length === 1 && services[0].qty === 1)) {
-    return services.length === 1
-      ? [{ label: withQty(services[0].name, services[0].qty), amount: log.amount }]
-      : [{ label: services.map((s) => withQty(s.name, s.qty)).join(", ") || "Makeup services", amount: log.amount }];
-  }
-  const diff = log.amount - menuTotal;
-  if (diff !== 0) priced.push({ label: diff > 0 ? "Additional services" : "Discount", amount: diff });
-  return priced;
-}
 
 export function bookingToDoc(log: WorkLog): DocData {
   return {
@@ -379,7 +358,10 @@ async function buildDocument(d: DocData): Promise<void> {
       doc.setTextColor(...INK);
     }
     put(doc, label, cService, y, { lineH: gap });
-    doc.text(row.amount < 0 ? `- ${money(-row.amount)}` : money(row.amount), R, y, { align: "right" });
+    // A menu item with no price (e.g. a consultation) inside an itemised table is "Included".
+    const shown =
+      row.qty != null && row.amount === 0 ? "Included" : row.amount < 0 ? `- ${money(-row.amount)}` : money(row.amount);
+    doc.text(shown, R, y, { align: "right" });
     y += gap * (label.length - 1);
     y += 3.5;
     doc.line(M, y, R, y);

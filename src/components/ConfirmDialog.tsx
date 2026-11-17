@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useBackgroundLock } from "../utils/backgroundLock";
 
 // iOS-style alert. Usage: `if (await confirm({...})) doIt();`
 
@@ -22,6 +23,7 @@ interface Pending extends ConfirmOptions {
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<Pending | null>(null);
+  useBackgroundLock(!!pending);
   const [closing, setClosing] = useState(false);
   const confirmBtn = useRef<HTMLButtonElement>(null);
 

@@ -1,12 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useBackgroundLock } from "../utils/backgroundLock";
 import { Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, X } from "lucide-react";
-import { formatTime, toISODate, todayISO } from "../utils/format";
-
-function shortDate(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-}
+import { formatDateShort, formatTime, toISODate, todayISO } from "../utils/format";
 
 // App-styled replacements for the browser's <select>, date and time inputs.
 // Each is a pill field that opens a bottom sheet.
@@ -22,6 +19,7 @@ interface PickerSheetProps {
 
 function PickerSheet({ title, onClose, onDone, children }: PickerSheetProps) {
   const [closing, setClosing] = useState(false);
+  useBackgroundLock();
   // Read the latest onDone when the close animation ends, so a value picked
   // just before tapping Done is never lost.
   const onDoneRef = useRef(onDone);
@@ -126,7 +124,7 @@ export function DateField({ id, value, onChange }: DateFieldProps) {
   return (
     <>
       <button type="button" id={id} className="field-input picker-field" onClick={() => setOpen(true)}>
-        <span>{value ? shortDate(value) : "Choose a date"}</span>
+        <span>{value ? formatDateShort(value) : "Choose a date"}</span>
         <Calendar size={17} strokeWidth={1.7} />
       </button>
       {open && <DateSheet value={value} onClose={() => setOpen(false)} onChange={onChange} />}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useBackgroundLock } from "../utils/backgroundLock";
 import { ChevronLeft, ChevronRight, ImagePlus, X } from "lucide-react";
 import type { BookingPhoto } from "../types";
 import { api } from "../api/client";
@@ -103,6 +104,7 @@ export function PhotoStrip({ photos }: { photos: BookingPhoto[] }) {
 }
 
 function PhotoViewer({ photos, start, onClose }: { photos: BookingPhoto[]; start: number; onClose: () => void }) {
+  useBackgroundLock();
   const [index, setIndex] = useState(start);
   const urls = usePhotoUrls(photos.map((p) => p.path));
   const current = photos[index];

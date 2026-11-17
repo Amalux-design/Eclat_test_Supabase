@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBackgroundLock } from "./backgroundLock";
 
 // Shared bottom sheet: slides down before it unmounts, and on phones and
 // tablets it can be dragged down to close (from the handle, the header, or
@@ -9,8 +10,21 @@ const DISMISS_PX = 110; // drag at least this far…
 const DISMISS_SPEED = 0.6; // …or flick faster than this (px per ms)
 const EASE = "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)";
 
-export function useSheet(onClose: () => void) {
+interface SheetOptions {
+  /**
+   * Asked before a user-initiated close (drag, backdrop, Cancel via
+   * `requestClose`). Resolve false to keep the sheet open, e.g. unsaved changes.
+   */
+  confirmDismiss?: () => Promise<boolean>;
+}
+
+export function useSheet(onClose: () => void, options: SheetOptions = {}) {
   const [closing, setClosing] = useState(false);
+  const confirmRef = useRef(options.confirmDismiss);
+  useEffect(() => {
+    confirmRef.current = options.confirmDismiss;
+  });
+  useBackgroundLock();
   const sheetRef = useRef<HTMLDivElement>(null);
   const closingRef = useRef(false);
   const onCloseRef = useRef(onClose);
@@ -24,6 +38,14 @@ export function useSheet(onClose: () => void) {
     setClosing(true);
     window.setTimeout(() => onCloseRef.current(), CLOSE_MS);
   }, []);
+
+  /** Close unless `confirmDismiss` says no (backdrop tap, Cancel). */
+  const requestClose = useCallback(async () => {
+    if (closingRef.current) return;
+    const ask = confirmRef.current;
+    if (ask && !(await ask())) return;
+    close();
+  }, [close]);
 
   useEffect(() => {
     const sheet = sheetRef.current;
@@ -111,7 +133,12 @@ export function useSheet(onClose: () => void) {
       const first = recent[0];
       const fresh = last && Math.abs(now - last.t) < 120;
       const speed = fresh && first && last.t - first.t >= 16 ? (last.y - first.y) / (last.t - first.t) : 0;
-      if (dy > DISMISS_PX || speed > DISMISS_SPEED) {
+      if ((dy > DISMISS_PX || speed > DISMISS_SPEED) && confirmRef.current) {
+        // Something unsaved: settle back and ask; close normally if confirmed.
+        sheet.style.transform = "";
+        overlay?.style.setProperty("--dim", "1");
+        void requestClose();
+      } else if (dy > DISMISS_PX || speed > DISMISS_SPEED) {
         // Finish the slide from where the finger let go.
         (document.activeElement as HTMLElement | null)?.blur?.(); // drop the keyboard now, not mid-drag
         sheet.style.transform = "translate3d(0, 100%, 0)";
@@ -136,7 +163,7 @@ export function useSheet(onClose: () => void) {
       sheet.removeEventListener("touchend", onEnd);
       sheet.removeEventListener("touchcancel", onEnd);
     };
-  }, []);
+  }, [requestClose]);
 
-  return { closing, close, sheetRef };
+  return { closing, close, requestClose, sheetRef };
 }

@@ -8,6 +8,7 @@ import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
 import { useSheet } from "../utils/useSheet";
 import { PhotoPicker } from "./Photos";
+import { useConfirm } from "./ConfirmDialog";
 
 interface LogFormProps {
   initial?: WorkLog | null;
@@ -22,7 +23,6 @@ interface LogFormProps {
 const KNOWN_SERVICES = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 
 export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, onClose }: LogFormProps) {
-  const { closing, close, sheetRef } = useSheet(onClose);
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayISO());
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
@@ -57,6 +57,28 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [submitting, setSubmitting] = useState(false);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<BookingPhoto[]>([]);
+
+  // Unsaved changes: a swipe, backdrop tap or Cancel asks before throwing them away.
+  const snapshot = JSON.stringify([
+    date, clientName, clientPhone, altPhone, works, customWork, customRate, eventType, location, bridesmaids,
+    startTime, endTime, extra, paymentStatus, own, referrerName, notes, privateNotes, paidSoFar, statusOverride,
+    newPhotos.length, removedPhotos.length,
+  ]);
+  const [initialSnapshot] = useState(snapshot);
+  const dirty = snapshot !== initialSnapshot;
+  const confirm = useConfirm();
+  const { closing, close, requestClose, sheetRef } = useSheet(onClose, {
+    confirmDismiss:
+      dirty && !submitting
+        ? () =>
+            confirm({
+              title: "Discard changes?",
+              message: "What you've entered in this booking won't be saved.",
+              confirmLabel: "Discard",
+              destructive: true,
+            })
+        : undefined,
+  });
 
   const customServices = works.filter((w) => !KNOWN_SERVICES.has(w.name)).map((w) => ({ name: w.name, price: w.price }));
   const qtyByName = Object.fromEntries(works.map((w) => [w.name, w.qty]));
@@ -150,7 +172,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
   // Portalled to <body> so page animations never shift the sheet.
   return createPortal(
-    <div className={`modal-overlay ${closing ? "closing" : ""}`} onClick={close}>
+    <div className={`modal-overlay ${closing ? "closing" : ""}`} onClick={() => void requestClose()}>
       <div
         ref={sheetRef}
         className="modal-sheet form-sheet"
@@ -159,7 +181,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
         aria-label={title}
       >
         <div className="modal-header">
-          <button type="button" className="text-btn" onClick={close}>Cancel</button>
+          <button type="button" className="text-btn" onClick={() => void requestClose()}>Cancel</button>
           <h2 className="modal-title">{title}</h2>
           <button type="submit" form="booking-form" className="save-pill" disabled={submitting}>
             {submitting ? "Saving…" : "Save"}

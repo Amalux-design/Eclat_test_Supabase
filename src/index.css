@@ -5246,10 +5246,9 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
 .bs-action.is-on { background: rgba(66, 12, 21, 0.06); }
 .bs-pay .partial-form { margin: 0; }
 .bs-pay-cancel { justify-self: center; font-size: 15px; }
-/* Header is just the handle strip (still sticky + draggable); close sits in the name row. */
+/* Header is just the handle strip (sticky + draggable); the close button rides in it. */
 .modal-header.bs-bar { display: block; min-height: 22px; padding: 0; }
 .bs-head { position: relative; padding-right: 44px; }
-.bs-close { position: absolute; top: -6px; right: -8px; }
 @media (min-width: 1024px) { .modal-header.bs-bar { min-height: 14px; } }
 
 /* Search lens dead-centre: the pill is 36px with a 1px border (34px inside),
@@ -5258,3 +5257,5 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
    the glyph is nudged half a pixel back (optical centre). */
 .search-pill .search-pill-icon { top: 2px; left: 2px; }
 .search-pill:not(.open) .search-pill-icon .lens { transform: translate(-0.5px, -0.5px); }
+/* Close rides in the sticky handle strip so it never scrolls away. */
+.bs-bar .bs-close { position: absolute; top: 8px; right: 8px; background: var(--cream); border-radius: 50%; }
