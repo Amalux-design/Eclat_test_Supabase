@@ -324,7 +324,7 @@ export function LogsPage() {
         <LogForm
           title="New booking"
           defaultDate={activeChip === "tomorrow" ? addDays(todayISO(), 1) : undefined}
-          onSubmit={(input: WorkLogInput, photos) => addLog(input, photos)}
+          onSubmit={(input, photos, draftId) => addLog(input as WorkLogInput, photos, draftId)}
           onClose={() => setShowAdd(false)}
         />
       )}
@@ -333,7 +333,7 @@ export function LogsPage() {
         <LogForm
           title="Edit booking"
           initial={editing}
-          onSubmit={(input: WorkLogInput, photos) => editLog(editing.id, input, photos)}
+          onSubmit={(changes, photos) => editLog(editing.id, changes, photos, editing)}
           onClose={() => setEditing(null)}
         />
       )}

@@ -28,6 +28,10 @@ steps 1–4 pass; report what was checked and what could not be.
    - Did any removed line enforce something? Is it enforced again?
    - Who else calls the changed function? Still correct for them?
    - Touch: scroll vs drag vs tap, keyboard open, short vs long content.
+   - Money: raise and lower the total of a paid and a part-paid booking.
+   - Data: two devices editing at once, lost reply then retry, failed photo
+     upload, replies out of order, failed delete, more than 1,000 rows.
+   - Setup SQL: run it on an empty database before calling it safe.
    - Zoom: JS coordinates from `getBoundingClientRect` divided by `--z`.
 4. Exercise it in the preview at 375×812 and desktop width. Behind sign-in:
    mount the component or its markup directly and measure (positions,

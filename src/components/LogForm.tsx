@@ -2,7 +2,9 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, Minus, Plus } from "lucide-react";
 import type { BookingPhoto, PaymentStatus, PhotoChanges, WorkLog, WorkLogInput, WorkStatus } from "../types";
-import { formatCurrency, isValidPhone, joinWorks, normalizePhone, parseWorks, splitQty, todayISO, withQty } from "../utils/format";
+import { formatCurrency, isValidPhone, joinWorks, normalizePhone, parseWorks, receivedOf, splitQty, todayISO, withQty } from "../utils/format";
+import { changedFields } from "../utils/editMerge";
+import { generateId } from "../utils/id";
 import { ServiceTiles } from "./ServiceTiles";
 import { EVENT_TYPES, SERVICE_GROUPS, servicePrice } from "../data/services";
 import { DateField, SelectField, TimeField } from "./Pickers";
@@ -15,8 +17,12 @@ interface LogFormProps {
   defaultDate?: string;
   forceStatus?: WorkStatus;
   title: string;
-  /** Resolves once the server confirms; rejects to keep the form open. */
-  onSubmit: (input: WorkLogInput, photos: PhotoChanges) => Promise<void>;
+  /**
+   * Resolves once the server confirms; rejects to keep the form open.
+   * `changes` holds only the fields edited here (everything, for a new booking).
+   * `draftId` stays the same however often this form retries its save.
+   */
+  onSubmit: (changes: Partial<WorkLogInput>, photos: PhotoChanges, draftId: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -51,7 +57,11 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [referrerName, setReferrerName] = useState(initial?.referrerName ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [privateNotes, setPrivateNotes] = useState(initial?.privateNotes ?? "");
-  const [paidSoFar, setPaidSoFar] = useState(initial?.paidAmount ? String(initial.paidAmount) : "");
+  const initialReceived = initial ? receivedOf(initial) : 0;
+  const [paidSoFar, setPaidSoFar] = useState(initialReceived ? String(initialReceived) : "");
+  // Only a tap on "Paid" in this form may turn a higher total into money received.
+  const [paidTapped, setPaidTapped] = useState(false);
+  const [draftId] = useState(generateId);
   const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -119,6 +129,43 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   // New bookings start as Booked; "Done" is set later (here or "Mark as done").
   const effectiveStatus: WorkStatus = forceStatus ?? statusOverride ?? "RESERVED";
 
+  // A paid booking whose total went up has a balance due again.
+  const shownPayment: PaymentStatus =
+    paymentStatus === "PAID" && !paidTapped && Number(amount) > initialReceived ? "PENDING" : paymentStatus;
+  const typedReceived = Math.max(0, Number(paidSoFar) || 0);
+  const receivedNow = paidTapped ? Math.max(typedReceived, Number(amount)) : typedReceived;
+  const refund = Number(amount) > 0 ? receivedNow - Number(amount) : 0;
+
+  function buildInput(): WorkLogInput {
+    const amountNum = Math.max(0, Number(amount) || 0);
+    const fullyPaid = amountNum > 0 ? receivedNow >= amountNum : shownPayment === "PAID";
+    const qty = initial?.qty && initial.qty > 1 ? initial.qty : 1;
+    return {
+      date,
+      clientName: clientName.trim(),
+      clientPhone: normalizePhone(clientPhone),
+      altPhone: normalizePhone(altPhone),
+      work: joinWorks(works.map((w) => withQty(w.name, w.qty, KNOWN_SERVICES.has(w.name) ? undefined : w.price))),
+      eventType,
+      location: location.trim(),
+      bridesmaids,
+      qty,
+      price: amountNum / qty,
+      startTime,
+      endTime,
+      amount: amountNum,
+      paymentStatus: fullyPaid ? "PAID" : "PENDING",
+      paidAmount: receivedNow,
+      status: effectiveStatus,
+      own,
+      referrerName: own ? "" : referrerName.trim(),
+      notes: notes.trim(),
+      privateNotes: privateNotes.trim(),
+    };
+  }
+  // The form as it opened, so a save sends only what was edited here.
+  const [openedInput] = useState(() => (initial ? { ...buildInput(), status: initial.status } : null));
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -129,38 +176,12 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       document.getElementById("f-name")?.focus();
       return;
     }
-    const workValue = joinWorks(works.map((w) => withQty(w.name, w.qty, KNOWN_SERVICES.has(w.name) ? undefined : w.price)));
-    const amountNum = Math.max(0, Number(amount) || 0);
-
-    const received = Math.min(Number(paidSoFar) || 0, amountNum);
-    const fullyPaid = paymentStatus === "PAID" || (amountNum > 0 && received >= amountNum);
-    const qty = initial?.qty && initial.qty > 1 ? initial.qty : 1;
     if (submitting) return;
     setSubmitting(true);
-    const input: WorkLogInput = {
-      date,
-      clientName: clientName.trim(),
-      clientPhone: normalizePhone(clientPhone),
-      altPhone: normalizePhone(altPhone),
-      work: workValue,
-      eventType,
-      location: location.trim(),
-      bridesmaids,
-      qty,
-      price: amountNum / qty,
-      startTime,
-      endTime,
-      amount: amountNum,
-      paymentStatus: fullyPaid ? "PAID" : "PENDING",
-      paidAmount: fullyPaid ? amountNum : received,
-      status: effectiveStatus,
-      own,
-      referrerName: own ? "" : referrerName.trim(),
-      notes: notes.trim(),
-      privateNotes: privateNotes.trim(),
-    };
+    const input = buildInput();
+    const changes = openedInput ? changedFields(openedInput, input) : input;
     try {
-      await onSubmit(input, { add: newPhotos, remove: removedPhotos });
+      await onSubmit(changes, { add: newPhotos, remove: removedPhotos }, draftId);
       close();
     } catch (err) {
       // Nothing is lost: the form stays open with everything still filled in.
@@ -342,15 +363,36 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
             </p>
 
             <div className="segmented">
-              <button type="button" className={`segmented-btn ${paymentStatus === "PENDING" ? "active" : ""}`} onClick={() => setPaymentStatus("PENDING")}>
+              <button
+                type="button"
+                className={`segmented-btn ${shownPayment === "PENDING" ? "active" : ""}`}
+                onClick={() => {
+                  // Undoing "Paid": drop the automatic full amount, keep a real part payment or overpayment.
+                  if (shownPayment === "PAID" && typedReceived === Number(amount)) setPaidSoFar("");
+                  setPaidTapped(false);
+                  setPaymentStatus("PENDING");
+                }}
+              >
                 Payment due
               </button>
-              <button type="button" className={`segmented-btn ${paymentStatus === "PAID" ? "active" : ""}`} onClick={() => setPaymentStatus("PAID")}>
+              <button
+                type="button"
+                className={`segmented-btn ${shownPayment === "PAID" ? "active" : ""}`}
+                onClick={() => {
+                  setPaidTapped(true);
+                  setPaymentStatus("PAID");
+                }}
+              >
                 Paid
               </button>
             </div>
 
-            <div className={`reveal-field ${paymentStatus === "PENDING" ? "open" : ""}`}>
+            {refund > 0 && (
+              <p className="field-hint" role="status">
+                {formatCurrency(receivedNow)} received, {formatCurrency(refund)} to refund.
+              </p>
+            )}
+            <div className={`reveal-field ${shownPayment === "PENDING" ? "open" : ""}`}>
               <div className="reveal-field-inner">
                 <label className="field-label" htmlFor="f-paid">Received so far</label>
                 <input
@@ -362,7 +404,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                   value={paidSoFar}
                   onChange={(e) => setPaidSoFar(e.target.value)}
                   placeholder="Advance or part payment, if any"
-                  tabIndex={paymentStatus === "PENDING" ? 0 : -1}
+                  tabIndex={shownPayment === "PENDING" ? 0 : -1}
                 />
               </div>
             </div>

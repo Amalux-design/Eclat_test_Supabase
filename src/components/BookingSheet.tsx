@@ -202,7 +202,7 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
             )}
 
             {/* Payment: a thin gold bar, one line, one button */}
-            {isAdmin && log.amount > 0 && (
+            {isAdmin && (log.amount > 0 || received > 0) && (
               <section className="bs-pay" aria-label="Payment">
                 <div
                   className="bs-progress"
@@ -210,7 +210,7 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                   aria-label="Paid so far"
                   aria-valuemin={0}
                   aria-valuemax={log.amount}
-                  aria-valuenow={received}
+                  aria-valuenow={Math.min(received, log.amount)}
                 >
                   <span style={{ width: `${paidShare * 100}%` }} />
                 </div>
@@ -218,6 +218,10 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                   <span>{formatCurrency(received)} received</span>
                   {balance > 0 ? (
                     <span className="bs-due">{formatCurrency(balance)} due</span>
+                  ) : log.amount === 0 ? (
+                    <span>Total not set</span>
+                  ) : balance < 0 ? (
+                    <span className="bs-due">{formatCurrency(-balance)} to refund</span>
                   ) : (
                     <span className="bs-paid">Paid in full</span>
                   )}

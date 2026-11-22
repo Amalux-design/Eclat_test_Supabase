@@ -16,15 +16,21 @@ const COLUMNS = [
 ];
 
 function backupNow() {
-  const res = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/rpc/backup_export", {
-    method: "post",
-    contentType: "application/json",
-    headers: { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY },
-    payload: JSON.stringify({ p_secret: BACKUP_SECRET }),
-    muteHttpExceptions: true,
-  });
-  if (res.getResponseCode() !== 200) throw new Error("Backup failed: " + res.getContentText());
-  const rows = JSON.parse(res.getContentText());
+  // Supabase returns at most 1,000 rows per request, so read until a page is empty.
+  const rows = [];
+  for (;;) {
+    const res = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/rpc/backup_export?limit=1000&offset=" + rows.length, {
+      method: "post",
+      contentType: "application/json",
+      headers: { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY },
+      payload: JSON.stringify({ p_secret: BACKUP_SECRET }),
+      muteHttpExceptions: true,
+    });
+    if (res.getResponseCode() !== 200) throw new Error("Backup failed: " + res.getContentText());
+    const page = JSON.parse(res.getContentText());
+    if (!page.length) break;
+    Array.prototype.push.apply(rows, page);
+  }
   // Phones as text so leading digits and length stay exactly as stored.
   const values = [COLUMNS].concat(rows.map((r) => COLUMNS.map((c) =>
     r[c] == null ? "" : (c.indexOf("phone") >= 0 ? "'" + r[c] : r[c]))));

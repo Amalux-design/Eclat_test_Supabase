@@ -11,12 +11,16 @@ What protects the data, and what the owner/developer must do once.
 - The anon key in the app is public by design; RLS decides access. No service_role key anywhere.
 
 ## Do once (in order)
+For a new project (production), first follow `supabase/README.md`: the repo is private from the start,
+`schema.sql` has no default owner, and the backup gets a new secret. URLs below are the test deployment's;
+use the production ones there.
+
 1. **Harden logins** — Supabase → SQL Editor → paste `supabase/hardening.sql` → Run.
    - Blocks sign-ups for emails not in `members` (even via the API).
    - Blocks changing a login email through the API (prevents taking over an invited admin's role).
    - Test: in the app, "First time? Create password" with an un-added email → "This email isn't on the Éclat team yet".
 1b. **Delete for removed members** — paste `supabase/archive-members.sql` → Run (adds `members.archived` + owner-only `archive_member`). Required by the app's Team access list.
-2. **Live revoke** — SQL Editor: `alter publication supabase_realtime add table public.members;` (an "already member" error is fine).
+2. **Live revoke** — already in `schema.sql` for new projects; on an older one, SQL Editor: `alter publication supabase_realtime add table public.members;` (an "already member" error is fine).
 3. **Make the GitHub repo private** — github.com/Amalux-design/Eclat_test_Supabase → Settings → General → Danger Zone → Change visibility → Private. Vercel keeps deploying (it's connected through the GitHub app).
 4. **Supabase Auth settings** — Authentication → Sign In / Providers → Email: keep "Confirm email" OFF. Authentication → URL Configuration → Site URL = `https://eclatsupabasetest.vercel.app`.
 5. **Accounts** — 2-Step Verification on the Google account(s) used for Supabase, Vercel, GitHub and the owner's login email. Strong unique passwords.

@@ -4,9 +4,12 @@ One-time setup, about 10 minutes. Do the steps in order.
 
 ## 1. Create the database
 
-1. Open `supabase/schema.sql` and change the email on the **last line**
-   (`owner@example.com`) to Harsha's email. This makes her the owner.
-2. Supabase dashboard → **SQL Editor** → **New query** → paste the whole file → **Run**.
+1. Supabase dashboard → **SQL Editor** → **New query** → paste the whole of
+   `supabase/schema.sql`.
+2. There (not in the repo file), replace `OWNER-EMAIL-HERE` near the end with
+   the owner's own email, read it back letter by letter, then **Run**. The
+   script refuses to run until you do. Have the owner create their password
+   straight away: until then, anyone who knows that email could claim it.
 3. You should see "Success. No rows returned".
 
 This creates:
@@ -51,7 +54,19 @@ database then refuses sign-ups for emails not on the team and blocks login
 email changes through the API. Then also run `supabase/archive-members.sql`
 (the "Delete" button for removed people). Full checklist: `docs/SECURITY.md`.
 
+## 2c. Daily backup
+
+1. Paste `supabase/backup.sql` into the SQL Editor. There (never in the repo
+   file), replace `CHANGE-ME-LONG-RANDOM` with a new secret of at least 24
+   characters, then **Run**. Re-running later keeps the saved secret (to change
+   it, see `docs/SECURITY.md`).
+2. Paste `scripts/backup-apps-script.gs` into the backup Sheet's Apps Script.
+   There (never in the repo file), fill in this project's URL, anon key and
+   that secret, then run `backupNow` once.
+
 ## 3. Move the existing bookings (optional)
+
+Skip for production: it starts empty (decided 2026-11-18).
 
 1. In the old Google Sheet, open the `WORK_LOGS` tab → **File → Download →
    Comma-separated values (.csv)**.
@@ -71,7 +86,7 @@ Phone numbers are cleaned to plain 10-digit mobiles on the way in.
 `.env` (not committed) holds:
 
 ```
-VITE_SUPABASE_URL=https://kppfwtaagqasbvofztuv.supabase.co
+VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 VITE_SUPABASE_ANON_KEY=…
 ```
 
@@ -109,9 +124,10 @@ it's confirmed. If it fails (no signal), the form keeps everything filled in
 and says so: tap Save again when back online. Other devices see changes
 within about a second (live updates).
 
-If two people edit the same booking at once, the second save is refused with
-"This booking was changed on another device", and their screen refreshes to
-the latest version, instead of silently overwriting.
+If two people edit the same booking at once, the second save stops with a
+warning and keeps the form open. Saving again writes only the fields that
+person changed, on top of the latest version; if both changed the same field,
+the warning shows the other value first.
 
 ## Reference photos
 

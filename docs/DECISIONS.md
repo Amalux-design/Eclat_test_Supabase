@@ -18,3 +18,11 @@
 | Playfair Display titles; neutral sans for Earnings figures | Brand feel for headings, readability for money (Bodoni was too thin). |
 | No fades on page change; transform-only swipe | Fades caused visible blinking and colour shifts. |
 | Laptop zoom (up to 125%) instead of re-layout | Owner liked the 125% browser-zoom look; one scale step keeps all layouts intact. |
+| Received money is never clipped to the total | Raising a total leaves a balance due; lowering it shows a refund. Only an explicit Paid / Record payment adds money. |
+| Edits send changed fields only, merged onto the latest row | A stale form can't undo another device's payment; a change made meanwhile always warns first (`utils/editMerge.ts`). |
+| New-booking id belongs to the open form | Retrying a save updates the same booking instead of duplicating it. |
+| Lists and backups read in pages of 1,000 | Supabase caps each reply at 1,000 rows. |
+| Only the newest refresh may update the list | A slow older reply must not undo a newer change. |
+| Delete removes the booking row before its photo files | A failed delete must not leave a booking with broken photos. |
+| `schema.sql` has no default owner | An unedited setup stops and creates nothing; a re-run never adds a second owner. |
+| Production is a fresh copy in the client's own accounts, starting empty | The test deployment stays the developer's; nothing is imported or repointed. |

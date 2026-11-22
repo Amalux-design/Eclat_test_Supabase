@@ -74,10 +74,10 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
     return {
       total,
       received,
-      outstanding: Math.max(0, total - received),
+      outstanding: overdue + upcoming,
       count: logs.length,
       avg: logs.length ? Math.round(total / logs.length) : 0,
-      rate: total ? Math.round((received / total) * 100) : 0,
+      rate: total ? Math.min(100, Math.round((received / total) * 100)) : 0,
       months,
       best: best.booked > 0 ? best : null,
       weekdays,

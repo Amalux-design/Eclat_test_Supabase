@@ -29,6 +29,9 @@ function toApiError(err: { message?: string; code?: string } | null | undefined,
   return new ApiError(msg || fallback, "ERROR");
 }
 
+// One key per picked file, so a retried upload replaces itself instead of adding a copy.
+const photoKeys = new WeakMap<File, string>();
+
 /* ---------- row ↔ WorkLog mapping ---------- */
 
 interface BookingRow {
@@ -131,12 +134,23 @@ const ADMIN_SELECT = "*, booking_photos(id, path, thumb_path), booking_private(*
 
 export const api = {
   async fetchBookings(admin: boolean): Promise<WorkLog[]> {
-    const { data, error } = await supabase
-      .from("bookings")
-      .select(admin ? ADMIN_SELECT : PUBLIC_SELECT)
-      .order("date", { ascending: false });
-    if (error) throw toApiError(error, "Couldn't load bookings.");
-    return (data as unknown as BookingRow[]).map(fromRow);
+    // The server returns at most 1,000 rows per request. Page by id (stable while
+    // others add or delete) until the count from the first page is reached.
+    const all: BookingRow[] = [];
+    let total = Infinity;
+    while (all.length < total) {
+      let query = supabase
+        .from("bookings")
+        .select(admin ? ADMIN_SELECT : PUBLIC_SELECT, all.length ? undefined : { count: "exact" });
+      if (all.length) query = query.gt("id", all[all.length - 1].id);
+      const { data, error, count } = await query.order("id").limit(1000);
+      if (error) throw toApiError(error, "Couldn't load bookings.");
+      const page = (data ?? []) as unknown as BookingRow[];
+      if (!all.length && count != null) total = count;
+      all.push(...page);
+      if (!page.length) break;
+    }
+    return all.map(fromRow).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   },
 
   async fetchBooking(id: string, admin: boolean): Promise<WorkLog | null> {
@@ -164,9 +178,10 @@ export const api = {
   },
 
   async deleteBooking(log: Pick<WorkLog, "id" | "photos">): Promise<void> {
-    if (log.photos.length) await removePhotoFiles(log.photos);
     const { error } = await supabase.from("bookings").delete().eq("id", log.id);
     if (error) throw toApiError(error, "Couldn't delete the booking.");
+    // Only now: files can't be brought back. A failure here leaves an unused file, nothing worse.
+    if (log.photos.length) await removePhotoFiles(log.photos).catch((e) => console.warn("Photo files left behind:", e));
   },
 
   /* ---------- photos ---------- */
@@ -174,7 +189,8 @@ export const api = {
   async addPhotos(bookingId: string, workDate: string, files: File[]): Promise<void> {
     for (const file of files) {
       const { full, thumb } = await compressPhoto(file);
-      const key = generateId();
+      const key = photoKeys.get(file) ?? generateId();
+      photoKeys.set(file, key);
       const path = `${bookingId}/${key}.jpg`;
       const thumbPath = `${bookingId}/${key}-thumb.jpg`;
       const up1 = await supabase.storage.from(PHOTO_BUCKET).upload(path, full, { contentType: "image/jpeg", upsert: true });
@@ -183,7 +199,7 @@ export const api = {
       if (up2.error) throw toApiError(up2.error, "Couldn't upload a photo.");
       const { error } = await supabase
         .from("booking_photos")
-        .insert({ booking_id: bookingId, path, thumb_path: thumbPath, work_date: workDate });
+        .upsert({ id: key, booking_id: bookingId, path, thumb_path: thumbPath, work_date: workDate });
       if (error) throw toApiError(error, "Couldn't save a photo.");
     }
   },

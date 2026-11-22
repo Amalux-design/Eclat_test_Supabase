@@ -160,10 +160,13 @@ export function telHref(phone: string): string {
   return `tel:${String(phone).replace(/[^\d+]/g, "")}`;
 }
 
-/** Money received for a booking: the full amount once paid, else part-payments. */
+/**
+ * Money received for a booking. Never clipped to the total: more than the total
+ * means a refund is owed. (Older PAID rows may have no paidAmount, hence the max.)
+ */
 export function receivedOf(log: { paymentStatus: string; amount: number; paidAmount: number }): number {
-  if (log.paymentStatus === "PAID") return log.amount;
-  return Math.min(Math.max(log.paidAmount || 0, 0), log.amount);
+  const paid = Math.max(log.paidAmount || 0, 0);
+  return log.paymentStatus === "PAID" ? Math.max(log.amount, paid) : paid;
 }
 
 export function isPartPaid(log: { paymentStatus: string; amount: number; paidAmount: number }): boolean {

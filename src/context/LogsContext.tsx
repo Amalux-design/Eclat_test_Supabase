@@ -4,20 +4,13 @@ import type { PhotoChanges, WorkLog, WorkLogInput } from "../types";
 import { ApiError, api } from "../api/client";
 import { supabase } from "../lib/supabase";
 import { readLogsCache, writeLogsCache } from "../utils/localCache";
-import { monthKey } from "../utils/format";
-import { generateId } from "../utils/id";
+import { monthKey, receivedOf } from "../utils/format";
+import { changeWarning, mergeEdit, sameBooking } from "../utils/editMerge";
 import { useAuth } from "./AuthContext";
-import { useNotice } from "../components/Notice";
 
 // Online-only: each save goes straight to the database and resolves when it
 // is confirmed. Other devices learn about changes instantly through Supabase
 // Realtime, so there's no polling and no offline queue.
-
-const SYNC_FIELDS: (keyof WorkLogInput)[] = [
-  "date", "clientName", "clientPhone", "altPhone", "work", "eventType", "location", "bridesmaids",
-  "qty", "price", "amount", "paymentStatus", "status", "own", "referrerName", "startTime", "endTime",
-  "notes", "privateNotes", "paidAmount",
-];
 
 interface LogsContextValue {
   logs: WorkLog[];
@@ -28,8 +21,10 @@ interface LogsContextValue {
   /** Number of saves in flight; drives the header logo shimmer. */
   saving: number;
   refetch: () => Promise<void>;
-  addLog: (input: WorkLogInput, photos?: PhotoChanges) => Promise<void>;
-  editLog: (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges) => Promise<void>;
+  /** `id` comes from the form, so retrying a save can't create a second booking. */
+  addLog: (input: WorkLogInput, photos: PhotoChanges, id: string) => Promise<void>;
+  /** `opened` is the version the edit started from. */
+  editLog: (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, opened?: WorkLog) => Promise<void>;
   removeLog: (id: string) => Promise<void>;
   markPaid: (id: string) => Promise<void>;
   /** Record the total received so far; reaching the full amount marks it paid. */
@@ -46,7 +41,6 @@ function sortDesc(list: WorkLog[]): WorkLog[] {
 
 export function LogsProvider({ children }: { children: ReactNode }) {
   const { status, isAdmin, recheck } = useAuth();
-  const notify = useNotice();
   const ready = status === "ready";
 
   const [logs, setLogs] = useState<WorkLog[]>(() => readLogsCache(isAdmin)?.logs ?? []);
@@ -67,7 +61,10 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     writeLogsCache(adminRef.current, sorted, "");
   }, []);
 
+  // Numbered loads: a slow, older reply never replaces a newer list.
+  const loadsRef = useRef({ started: 0, shown: 0 });
   const refetch = useCallback(async () => {
+    const load = ++loadsRef.current.started;
     try {
       // Re-check the role alongside every load: a removed member's rows are
       // simply filtered out by the database, so ask explicitly.
@@ -76,9 +73,12 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         void recheck();
         return;
       }
+      if (load < loadsRef.current.shown) return;
+      loadsRef.current.shown = load;
       commit(data);
       setError(null);
     } catch (e) {
+      if (load < loadsRef.current.shown) return;
       if (e instanceof ApiError && e.code === "AUTH") void recheck();
       setError(
         e instanceof ApiError && e.code === "NETWORK"
@@ -95,6 +95,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
 
   // Load when access is confirmed (and again if the role changes).
   useEffect(() => {
+    loadsRef.current.shown = ++loadsRef.current.started; // replies from before this access change are void
     if (status === "signed-out" || status === "no-access") {
       setLogs([]);
       setSettled(true);
@@ -162,36 +163,28 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       .catch((e) => console.warn("Photo clean-up skipped:", e));
   }, [ready, isAdmin, refetch, recheck]);
 
-  /** Run a write; on failure, explain it and re-sync where that helps. */
+  /** Run a write. Failures always reject, so the form stays open with the message. */
   const run = useCallback(
-    async <T,>(work: () => Promise<T>, onConflict?: () => Promise<boolean>): Promise<T | undefined> => {
+    async <T,>(work: () => Promise<T>): Promise<T> => {
       setSaving((n) => n + 1);
       try {
         return await work();
       } catch (e) {
         const err = e instanceof ApiError ? e : new ApiError(e instanceof Error ? e.message : "Something went wrong.", "ERROR");
-        if (err.code === "CONFLICT") {
-          // A retried save whose first attempt already landed is not a conflict.
-          if (onConflict && (await onConflict())) return undefined;
-          notify("This booking was changed on another device. Your edit wasn't saved. Please check and edit again.", "error");
-          await refetch();
-          return undefined;
-        }
-        if (err.code === "NOT_FOUND") {
-          notify("This booking was deleted on another device.", "error");
-          await refetch();
-          return undefined;
+        if (err.code === "CONFLICT" || err.code === "NOT_FOUND") {
+          void refetch();
+          throw err;
         }
         if (err.code === "AUTH") {
           void recheck();
         }
         console.error("Save failed:", err);
-        throw err; // NETWORK / VALIDATION / AUTH / ERROR: the form stays open with the message
+        throw err;
       } finally {
         setSaving((n) => n - 1);
       }
     },
-    [notify, refetch, recheck]
+    [refetch, recheck]
   );
 
   const applyPhotos = useCallback(async (id: string, date: string, photos?: PhotoChanges) => {
@@ -200,44 +193,63 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     if (photos.add.length) await api.addPhotos(id, date, photos.add);
   }, []);
 
-  const addLog = useCallback(
-    async (input: WorkLogInput, photos?: PhotoChanges) => {
-      const id = generateId();
-      await run(async () => {
-        await api.saveBooking({ ...input, id }, null);
-        await applyPhotos(id, input.date, photos);
-        await refetch();
-      });
+  /** After the booking itself is saved: photos, then the fresh list. */
+  const finishSave = useCallback(
+    async (id: string, date: string, photos?: PhotoChanges) => {
+      try {
+        await applyPhotos(id, date, photos);
+      } catch (e) {
+        void refetch();
+        console.warn("Photo save failed:", e);
+        throw new ApiError("Booking saved, but the photo changes didn't finish. Tap Save to try again, or remove the new photo.", "ERROR");
+      }
+      await refetch();
     },
-    [run, applyPhotos, refetch]
+    [applyPhotos, refetch]
   );
 
-  const editLog = useCallback(
-    async (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges) => {
-      const current = logsRef.current.find((l) => l.id === id);
-      if (!current) return;
-      const next: WorkLog = { ...current, ...patch };
-      await run(
-        async () => {
-          await api.saveBooking(next, current.updatedAt);
-          await applyPhotos(id, next.date, photos);
-          await refetch();
-        },
-        // Conflict check: if the server already holds exactly these values
-        // (a repeated tap after a lost reply), treat it as saved.
-        async () => {
-          const server = await api.fetchBooking(id, adminRef.current);
-          if (!server) return false;
-          const same = SYNC_FIELDS.every((f) => String(server[f]) === String(next[f]));
-          if (same) {
-            await applyPhotos(id, next.date, photos);
-            await refetch();
-          }
-          return same;
-        }
-      );
+  const addLog = useCallback(
+    async (input: WorkLogInput, photos: PhotoChanges, id: string) => {
+      await run(async () => {
+        await api.saveBooking({ ...input, id }, null);
+        await finishSave(id, input.date, photos);
+      });
     },
-    [run, applyPhotos, refetch]
+    [run, finishSave]
+  );
+
+  // Per open form: the newest version it has been warned about or saved itself,
+  // and the fields it has already written.
+  const editsRef = useRef(new WeakMap<WorkLog, { seen: string; written: (keyof WorkLogInput)[] }>());
+
+  const editLog = useCallback(
+    async (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, opened?: WorkLog) => {
+      await run(async () => {
+        const from = opened ?? logsRef.current.find((l) => l.id === id);
+        const latest = from && (await api.fetchBooking(id, adminRef.current));
+        if (!from || !latest) {
+          throw new ApiError("This booking was deleted on another device. Copy anything you need, then close it.", "NOT_FOUND");
+        }
+        // Only a form can acknowledge a warning; a quick payment always starts from the latest total.
+        const edit = opened && editsRef.current.get(opened);
+        // A field written by an earlier attempt and since put back is put back on the server too.
+        const changes: Partial<WorkLogInput> = {};
+        for (const key of edit?.written ?? []) Object.assign(changes, { [key]: from[key] });
+        Object.assign(changes, patch);
+
+        const next = mergeEdit(latest, changes);
+        // Already holds exactly these values: a repeated tap after a lost reply.
+        const landed = Object.keys(changes).length > 0 && sameBooking(latest, next);
+        if (!landed && latest.updatedAt !== from.updatedAt && latest.updatedAt !== edit?.seen) {
+          if (opened) editsRef.current.set(opened, { seen: latest.updatedAt, written: edit?.written ?? [] });
+          throw new ApiError(changeWarning(from, latest, changes), "CONFLICT");
+        }
+        const savedAt = landed ? latest.updatedAt : await api.saveBooking(next, latest.updatedAt);
+        if (opened) editsRef.current.set(opened, { seen: savedAt, written: Object.keys(changes) as (keyof WorkLogInput)[] });
+        await finishSave(id, next.date, photos);
+      });
+    },
+    [run, finishSave]
   );
 
   const removeLog = useCallback(
@@ -246,6 +258,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       if (!current) return;
       await run(async () => {
         await api.deleteBooking(current);
+        loadsRef.current.shown = ++loadsRef.current.started; // a load already on its way still has this booking
         commit(logsRef.current.filter((l) => l.id !== id));
       });
     },
@@ -256,7 +269,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const current = logsRef.current.find((l) => l.id === id);
       if (!current) return;
-      await editLog(id, { paymentStatus: "PAID", paidAmount: current.amount });
+      await editLog(id, { paymentStatus: "PAID", paidAmount: Math.max(current.amount, receivedOf(current)) });
     },
     [editLog]
   );
@@ -265,7 +278,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     async (id: string, received: number) => {
       const current = logsRef.current.find((l) => l.id === id);
       if (!current) return;
-      const paid = Math.max(0, Math.min(received, current.amount));
+      const paid = Math.max(0, received);
       await editLog(id, {
         paidAmount: paid,
         paymentStatus: paid >= current.amount && current.amount > 0 ? "PAID" : "PENDING",

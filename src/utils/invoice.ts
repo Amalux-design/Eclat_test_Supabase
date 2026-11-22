@@ -401,7 +401,8 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.text(money(Math.round(total / 2)), R, y, { align: "right" });
   } else {
     const received = d.received ?? 0;
-    const balance = total - received;
+    // With no total set yet, money received is an advance, not a refund.
+    const balance = total > 0 ? total - received : 0;
     doc.text("Total", labelX, y);
     doc.text(money(total), R, y, { align: "right" });
     y += 6.5;
@@ -415,9 +416,9 @@ async function buildDocument(d: DocData): Promise<void> {
     doc.setFont("times", "bold");
     doc.setFontSize(14);
     doc.setTextColor(...WINE);
-    doc.text(balance > 0 ? "Balance due" : "Paid in full", labelX, y);
+    doc.text(balance > 0 ? "Balance due" : balance < 0 ? "Refund due" : "Paid in full", labelX, y);
     // Paid in full shows the amount paid, not "Rs. 0", so it reads at a glance.
-    doc.text(money(balance > 0 ? balance : received), R, y, { align: "right" });
+    doc.text(money(balance === 0 ? received : Math.abs(balance)), R, y, { align: "right" });
     doc.setFont("helvetica", "normal");
   }
 

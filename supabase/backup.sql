@@ -8,7 +8,7 @@ create table if not exists public.backup_secret (
 );
 alter table public.backup_secret enable row level security;  -- no policies: nobody can read it
 insert into public.backup_secret (id, secret) values (1, 'CHANGE-ME-LONG-RANDOM')
-  on conflict (id) do update set secret = excluded.secret;
+  on conflict (id) do nothing;  -- re-running this file keeps your real secret
 
 -- Returns every booking with its private details, but only with the right secret.
 create or replace function public.backup_export(p_secret text)
@@ -34,7 +34,7 @@ begin
     )
     from public.bookings b
     left join public.booking_private p on p.booking_id = b.id
-    order by b.date desc;
+    order by b.date desc, b.id;  -- fixed order, so the backup can read it in pages
 end;
 $$;
 

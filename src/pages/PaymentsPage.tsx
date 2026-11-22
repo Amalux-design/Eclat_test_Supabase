@@ -8,7 +8,7 @@ import { formatCurrency, monthLabel, receivedOf } from "../utils/format";
 import { Loader } from "../components/Loader";
 import { SelectField } from "../components/Pickers";
 import { HeadKey } from "../components/HeadKey";
-import type { WorkLog, WorkLogInput } from "../types";
+import type { WorkLog } from "../types";
 
 export function PaymentsPage() {
   const { logs: allLogs, loading, error, editLog } = useLogs();
@@ -55,7 +55,8 @@ export function PaymentsPage() {
       .map(([key, g]) => {
         const paid = g.logs.reduce((s, l) => s + receivedOf(l), 0);
         const total = g.logs.reduce((s, l) => s + l.amount, 0);
-        return { key, ...g, paid, due: total - paid, total };
+        const due = g.logs.reduce((s, l) => s + Math.max(0, l.amount - receivedOf(l)), 0);
+        return { key, ...g, paid, due, total };
       });
   }, [logs]);
 
@@ -78,7 +79,7 @@ export function PaymentsPage() {
     });
   }
 
-  const paidShare = totals.total ? Math.round((totals.paid / totals.total) * 100) : 0;
+  const paidShare = totals.total ? Math.min(100, Math.round((totals.paid / totals.total) * 100)) : 0;
 
   return (
     <div className="page earnings-page">
@@ -201,7 +202,7 @@ export function PaymentsPage() {
         <LogForm
           title="Edit booking"
           initial={editing}
-          onSubmit={(input: WorkLogInput, photos) => editLog(editing.id, input, photos)}
+          onSubmit={(changes, photos) => editLog(editing.id, changes, photos, editing)}
           onClose={() => setEditing(null)}
         />
       )}

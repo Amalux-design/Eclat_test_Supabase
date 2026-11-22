@@ -3,7 +3,8 @@
 -- Run once in Supabase → SQL Editor → New query → paste → Run.
 -- Safe to re-run: everything uses IF NOT EXISTS / OR REPLACE.
 --
--- BEFORE RUNNING: replace the owner email at the very bottom with Harsha's.
+-- BEFORE RUNNING: replace OWNER-EMAIL-HERE at the very bottom with the owner's
+-- own email. Until then the script stops without creating anything.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -297,9 +298,24 @@ end $$;
 grant execute on function public.save_booking(jsonb, jsonb, timestamptz) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Owner. CHANGE THIS EMAIL to Harsha's before running.
--- Add more people later from the app (Account → Team).
+-- Owner. Replace OWNER-EMAIL-HERE with the owner's own email before running.
+-- There is deliberately no default: whoever holds this email controls the app,
+-- and can create its password without email confirmation. Re-running on a
+-- database that already has an owner never adds another.
+-- Add more people later from the app (Account -> Team).
 -- ---------------------------------------------------------------------------
-insert into public.members (email, name, role)
-values (lower('heyamalux@gmail.com.com'), 'Harsha', 'owner')
-on conflict (email) do update set role = 'owner', active = true;
+do $$
+declare
+  owner_email text := lower(trim('OWNER-EMAIL-HERE'));
+begin
+  if exists (select 1 from public.members where role = 'owner' and active) then
+    raise notice 'An owner already exists; left unchanged.';
+    return;
+  end if;
+  if owner_email !~ '^[^@[:space:]]+@[^@[:space:]]+[.][a-z]{2,}$' or owner_email ~ '[.]com[.]com$' then
+    raise exception 'Set the owner email on the owner_email line near the end of schema.sql, then run again.';
+  end if;
+  insert into public.members (email, name, role)
+  values (owner_email, 'Owner', 'owner')
+  on conflict (email) do update set role = 'owner', active = true;
+end $$;

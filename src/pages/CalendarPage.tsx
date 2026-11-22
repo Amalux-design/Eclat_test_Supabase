@@ -261,7 +261,7 @@ export function CalendarPage() {
         <LogForm
           title="New booking"
           defaultDate={selectedDate}
-          onSubmit={(input: WorkLogInput, photos) => addLog(input, photos)}
+          onSubmit={(input, photos, draftId) => addLog(input as WorkLogInput, photos, draftId)}
           onClose={() => setAdding(false)}
         />
       )}
@@ -271,7 +271,7 @@ export function CalendarPage() {
           title="Mark as done"
           initial={converting}
           forceStatus="WORKED"
-          onSubmit={(input: WorkLogInput, photos) => editLog(converting.id, input, photos)}
+          onSubmit={(changes, photos) => editLog(converting.id, changes, photos, converting)}
           onClose={() => setConverting(null)}
         />
       )}
@@ -280,7 +280,7 @@ export function CalendarPage() {
         <LogForm
           title="Edit booking"
           initial={editing}
-          onSubmit={(input: WorkLogInput, photos) => editLog(editing.id, input, photos)}
+          onSubmit={(changes, photos) => editLog(editing.id, changes, photos, editing)}
           onClose={() => setEditing(null)}
         />
       )}
