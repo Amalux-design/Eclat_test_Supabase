@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { ChevronRight, Images, Phone } from "lucide-react";
+import { ChevronRight, Images, MapPin, Phone } from "lucide-react";
 import type { WorkLog } from "../types";
 import { StatusPill } from "./StatusPill";
 import { BookingSheet } from "./BookingSheet";
 import { useAuth } from "../context/AuthContext";
-import { formatCurrency, formatTime, isPartPaid, parseWorks, telHref, workLabel } from "../utils/format";
+import { formatCurrency, formatTime, isMapLink, isPartPaid, parseWorks, telHref, workLabel } from "../utils/format";
 
 interface LogCardProps {
   log: WorkLog;
@@ -16,14 +16,17 @@ interface LogCardProps {
 }
 
 /**
- * Compact booking preview: time, name, price, a one-line service summary,
- * badges, a photo hint and Call. Tap anywhere to open the full details sheet.
+ * Compact booking preview: time, name, price, the first service (+ how many
+ * more), the place, badges, a photo hint and Call. Tap for the full details.
  */
 export function LogCard({ log, onEdit, dateLabel, tone = "paper" }: LogCardProps) {
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const services = parseWorks(log.work).map(workLabel);
-  const summary = services.length ? services.join(", ") : log.eventType ?? "";
+  const summary = services[0] ?? log.eventType ?? "";
+  const more = services.length - 1;
+  const location = log.location.trim();
+  const place = isMapLink(location) ? "Map link" : location;
   const event = services.length > 0 && log.eventType ? ` for ${log.eventType.toLowerCase()}` : "";
 
   return (
@@ -68,20 +71,35 @@ export function LogCard({ log, onEdit, dateLabel, tone = "paper" }: LogCardProps
             {isAdmin && log.amount > 0 && <span className="booking-amount">{formatCurrency(log.amount)}</span>}
           </div>
 
-          {(summary || log.photos.length > 0) && (
-            <div className="booking-summary-row">
-              <p className="booking-services booking-summary">
-                {summary}
-                {event && <span className="booking-event">{event}</span>}
+          <div className="booking-mid">
+            {(summary || log.photos.length > 0) && (
+              <div className="booking-summary-row">
+                <p className="booking-services booking-summary">
+                  <span className="booking-first">
+                    <span className="booking-first-name">{summary}</span>
+                    {more > 0 && (
+                      <span className="booking-more" title={services.slice(1).join(", ")}>
+                        +{more}
+                      </span>
+                    )}
+                  </span>
+                  {event && <span className="booking-event">{event.trim()}</span>}
+                </p>
+                {log.photos.length > 0 && (
+                  <span className="booking-photo-hint" aria-label={`${log.photos.length} reference photos`}>
+                    <Images size={15} strokeWidth={1.75} />
+                    {log.photos.length}
+                  </span>
+                )}
+              </div>
+            )}
+            {place && (
+              <p className="booking-place">
+                <MapPin size={14} strokeWidth={1.75} aria-hidden="true" />
+                <span>{place}</span>
               </p>
-              {log.photos.length > 0 && (
-                <span className="booking-photo-hint" aria-label={`${log.photos.length} reference photos`}>
-                  <Images size={15} strokeWidth={1.75} />
-                  {log.photos.length}
-                </span>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="booking-foot">
             <StatusPill kind={log.status} />
@@ -91,7 +109,6 @@ export function LogCard({ log, onEdit, dateLabel, tone = "paper" }: LogCardProps
               ) : (
                 <StatusPill kind={log.paymentStatus} />
               ))}
-
           </div>
         </div>
         <ChevronRight size={20} strokeWidth={1.75} className="booking-chevron" aria-hidden="true" />

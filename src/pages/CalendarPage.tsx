@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HeadKey } from "../components/HeadKey";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useLogs } from "../context/LogsContext";
 import { useAuth } from "../context/AuthContext";
 import { CalendarGrid } from "../components/CalendarGrid";
@@ -244,15 +244,27 @@ export function CalendarPage() {
         )}
 
         {!loading && dayLogs.length > 0 && (
-          <div className="list">
-            {dayLogs.map((log) => (
-              <div key={log.id}>
-                <LogCard log={log} onEdit={isAdmin ? () => setEditing(log) : undefined} />
-                {isAdmin && log.status === "RESERVED" && selectedDate <= todayISO() && (
-                  <button className="row-action" onClick={() => setConverting(log)}>Mark as done</button>
-                )}
-              </div>
-            ))}
+          <div className="agenda-list">
+            {dayLogs.map((log) => {
+              const canMarkDone = isAdmin && log.status === "RESERVED" && selectedDate <= todayISO();
+              return (
+                <div key={log.id} className="group agenda-booking">
+                  <LogCard log={log} onEdit={isAdmin ? () => setEditing(log) : undefined} />
+                  {canMarkDone && (
+                    <div className="agenda-booking-foot">
+                      <button
+                        type="button"
+                        className="booking-done"
+                        aria-label={`Mark as done: ${log.clientName || "unnamed client"}`}
+                        onClick={() => setConverting(log)}
+                      >
+                        <Check size={16} strokeWidth={2} aria-hidden="true" /> Mark as done
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

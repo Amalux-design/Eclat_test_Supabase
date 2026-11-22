@@ -126,7 +126,7 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
               </dl>
             </section>
 
-            <Section title="Money to collect">
+            <Section area="collect" title="Money to collect">
               <div className="dash-collect">
                 <div className="dash-collect-box overdue">
                   <span>Overdue</span>
@@ -151,7 +151,7 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
               )}
             </Section>
 
-            <Section title="Month by month">
+            <Section area="months" title="Month by month">
               <div className="dash-legend" aria-hidden="true">
                 <span><i style={{ background: BOOKED }} /> Booked</span>
                 <span><i style={{ background: RECEIVED }} /> Received</span>
@@ -159,23 +159,23 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
               <MonthChart months={d.months} />
             </Section>
 
-            <Section title="Busiest days">
+            <Section area="week" title="Busiest days">
               <WeekdayChart days={d.weekdays} />
             </Section>
 
             {d.services.length > 0 && (
-              <Section title="Top services">
+              <Section area="services" title="Top services">
                 <Ranked rows={d.services} color={BOOKED} />
               </Section>
             )}
 
             {d.clients.length > 0 && (
-              <Section title="Top clients">
+              <Section area="clients" title="Top clients">
                 <Ranked rows={d.clients} color={RECEIVED} />
               </Section>
             )}
 
-            <Section title="Where bookings come from">
+            <Section area="sources" title="Where bookings come from">
               <Split
                 a={{ label: `Direct · ${d.directN}`, value: d.direct, color: BOOKED }}
                 b={{ label: `Referred · ${d.referredN}`, value: d.referred, color: RECEIVED }}
@@ -195,9 +195,9 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, area, children }: { title: string; area: string; children: React.ReactNode }) {
   return (
-    <section className="dash-section">
+    <section className={`dash-section dash-at-${area}`}>
       <h3 className="dash-section-title">{title}</h3>
       {children}
     </section>

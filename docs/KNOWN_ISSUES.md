@@ -48,6 +48,10 @@ Audit fixes 2026-11-23, steps 8-10 (each tested by the developer):
 Audit fix 2026-11-23, step 11 (app part; existing rows still to be migrated):
 - Each booking saves its service prices in the private row and keeps them when the menu changes.
 
+UI fixes 2026-11-23 (checked with invented data at phone, tablet and laptop widths):
+- Earnings dashboard was wider than every phone screen when a name was long; now responsive.
+- "Paid" was unreadable on the dark Today panel.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.

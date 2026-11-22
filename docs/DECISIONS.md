@@ -38,3 +38,5 @@
 | Save stops while a typed custom service hasn't been added | Auto-adding would change the total after the person last saw it. |
 | Each booking keeps every service's unit price in `booking_private.rates` | The team can read `bookings.work`, so it holds names and quantities only; a later menu change doesn't rewrite old invoices. Only `api/client.ts` converts (`utils/rates.ts`). |
 | The standard price menu stays in the app bundle | Developer decision 2026-11-23: only custom prices and each booking's money are private. |
+| Calendar's day list reuses the Bookings tab's white groups; Mark as done is each group's last row | It can only mean that booking, and adds no new visual pattern. |
+| Earnings dashboard: one column under 700px, paired columns in a wider dialog from 700px | Phones must never scroll sideways; tablets and laptops shouldn't get a stretched phone layout. |

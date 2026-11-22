@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, FileText, LockKeyhole, MapPin, PencilLine, Phone, Users, X } from "lucide-react";
+import { ChevronRight, LockKeyhole, MapPin, PencilLine, Phone, Users, X } from "lucide-react";
 import type { WorkLog } from "../types";
 import { Sheet } from "./Sheet";
 import { StatusPill } from "./StatusPill";
@@ -12,7 +12,6 @@ import { useNotice } from "./Notice";
 import { lineItems } from "../utils/lineItems";
 import {
   formatCurrency,
-  formatDateShort,
   formatNumber,
   formatTime,
   isMapLink,
@@ -21,7 +20,6 @@ import {
   receivedOf,
   splitQty,
   telHref,
-  withQty,
 } from "../utils/format";
 
 interface BookingSheetProps {
@@ -33,7 +31,7 @@ interface BookingSheetProps {
 
 /**
  * Everything about one booking, sliding up from the bottom. Used on every tab.
- * Reads top to bottom: who and when → where and notes → receipt → payment → actions.
+ * Reads top to bottom: who → when and where → services → payment → notes, photos → actions.
  */
 export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProps) {
   const { isAdmin } = useAuth();
@@ -58,7 +56,10 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
   const items = lineItems(log);
   const itemised = isAdmin && log.amount > 0 && items.some((it) => it.qty != null);
   const paidShare = log.amount > 0 ? Math.min(1, Math.max(0, received / log.amount)) : 0;
-  const hasFacts = !!log.location || log.bridesmaids > 0 || !!log.notes || (isAdmin && !!log.privateNotes);
+  const lines: { label: string; qty?: number; amount?: number; adjustment?: boolean }[] = itemised
+    ? items
+    : services.map((sv) => ({ label: sv.name, qty: sv.qty }));
+  const day = new Date(`${log.date}T00:00:00`);
 
   async function remove(close: () => void) {
     const ok = await confirm({
@@ -147,82 +148,78 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
           </div>
 
           <div className="modal-body booking-sheet">
-            {/* Who and when */}
+            {/* Who */}
             <div className="bs-head">
               <h3 className="bs-name">{log.clientName || "Unnamed client"}</h3>
-              <p className="bs-when">
-                {formatDateShort(log.date, "auto")} · {log.startTime ? formatTime(log.startTime) : "Any time"}
-                {log.endTime && <> → ready {formatTime(log.endTime)}</>}
-              </p>
               <div className="bs-pills">
                 <StatusPill kind={log.status} />
+                {log.eventType && <span className="bs-event">{log.eventType}</span>}
                 {isAdmin && !log.own && <span className="booking-referral">via {log.referrerName || "referral"}</span>}
               </div>
             </div>
 
-            {/* Where, who else, notes: one quiet list */}
-            {hasFacts && (
-              <ul className="bs-facts">
-                {log.location && (
-                  <li>
-                    <a className="bs-fact bs-fact-link" href={mapsUrl(log.location)} target="_blank" rel="noreferrer">
-                      <MapPin size={18} strokeWidth={1.75} aria-hidden="true" />
-                      <span className="bs-fact-text">{isMapLink(log.location) ? "Open in Maps" : log.location}</span>
-                      <ChevronRight size={18} strokeWidth={1.75} className="bs-fact-go" aria-hidden="true" />
-                    </a>
-                  </li>
-                )}
-                {log.bridesmaids > 0 && (
-                  <li className="bs-fact">
-                    <Users size={18} strokeWidth={1.75} aria-hidden="true" />
-                    <span className="bs-fact-text">
-                      {log.bridesmaids} bridesmaid{log.bridesmaids === 1 ? "" : "s"}
-                    </span>
-                  </li>
-                )}
-                {log.notes && (
-                  <li className="bs-fact">
-                    <FileText size={18} strokeWidth={1.75} aria-hidden="true" />
-                    <span className="bs-fact-text">{log.notes}</span>
-                  </li>
-                )}
-                {isAdmin && log.privateNotes && (
-                  <li className="bs-fact bs-fact-private">
-                    <LockKeyhole size={17} strokeWidth={1.75} aria-label="Only admins see this" />
-                    <span className="bs-fact-text">{log.privateNotes}</span>
-                  </li>
-                )}
-              </ul>
-            )}
+            {/* When and where: the one dark block, readable at a glance */}
+            <div className="bs-slip">
+              <div className="bs-slip-when">
+                <time className="bs-date" dateTime={log.date}>
+                  <span>{day.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+                  <strong>{day.getDate()}</strong>
+                  <span>
+                    {day.toLocaleDateString("en-GB", { month: "short" })}
+                    {day.getFullYear() !== new Date().getFullYear() && ` ${day.getFullYear()}`}
+                  </span>
+                </time>
+                <dl className={`bs-times${log.startTime && log.endTime ? " two" : ""}`}>
+                  {(log.startTime || !log.endTime) && (
+                    <div>
+                      <dt>{log.startTime ? "Starts" : "Time"}</dt>
+                      <dd>{log.startTime ? formatTime(log.startTime) : "Any time"}</dd>
+                    </div>
+                  )}
+                  {log.endTime && (
+                    <div>
+                      <dt>Ready by</dt>
+                      <dd>{formatTime(log.endTime)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              {log.location && (
+                <a className="bs-slip-where" href={mapsUrl(log.location)} target="_blank" rel="noreferrer">
+                  <MapPin size={18} strokeWidth={1.75} aria-hidden="true" />
+                  <span className="bs-where-text">{isMapLink(log.location) ? "Map link" : log.location}</span>
+                  <span className="bs-directions">
+                    Directions <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
+                  </span>
+                </a>
+              )}
+            </div>
 
-            {/* Receipt */}
-            {(services.length > 0 || log.eventType) && (
+            {/* What: quantities in their own column, amounts on the right */}
+            {(services.length > 0 || log.bridesmaids > 0 || (isAdmin && log.amount > 0)) && (
               <section className="bs-section">
-                <h4 className="bs-label">{log.eventType || "Services"}</h4>
-                {services.length > 0 && (
-                  <ul className="bs-receipt">
-                    {itemised
-                      ? items.map((it, i) => {
-                          const included = it.qty != null && it.amount === 0;
-                          return (
-                            <li key={`${it.label}-${i}`} className={it.adjustment ? "bs-adjust" : undefined}>
-                              <span>{it.qty != null ? withQty(it.label, it.qty) : it.label}</span>
-                              <span className={included ? "bs-included" : "bs-num"}>
-                                {included
-                                  ? "Included"
-                                  : it.amount < 0
-                                    ? `− ${formatNumber(-it.amount)}`
-                                    : formatNumber(it.amount)}
-                              </span>
-                            </li>
-                          );
-                        })
-                      : services.map((sv, i) => (
-                          <li key={`${sv.name}-${i}`}>
-                            <span>{withQty(sv.name, sv.qty)}</span>
-                          </li>
+                {(services.length > 0 || log.bridesmaids > 0) && <h4 className="bs-label">Services</h4>}
+                <ul className={`bs-receipt${lines.some((l) => (l.qty ?? 1) > 1) ? " has-qty" : ""}`}>
+                  {lines.map((line, i) => (
+                    <li key={`${line.label}-${i}`} className={line.adjustment ? "bs-adjust" : undefined}>
+                      <span className="bs-qty">{(line.qty ?? 1) > 1 ? `${line.qty}×` : ""}</span>
+                      <span className="bs-service">{line.label}</span>
+                      {line.amount !== undefined &&
+                        (line.qty != null && line.amount === 0 ? (
+                          <span className="bs-included">Included</span>
+                        ) : (
+                          <span className="bs-num">
+                            {line.amount < 0 ? `− ${formatNumber(-line.amount)}` : formatNumber(line.amount)}
+                          </span>
                         ))}
-                  </ul>
+                    </li>
+                  ))}
+                </ul>
+                {log.bridesmaids > 0 && (
+                  <p className="bs-party">
+                    <Users size={17} strokeWidth={1.75} aria-hidden="true" />
+                    {log.bridesmaids} bridesmaid{log.bridesmaids === 1 ? "" : "s"}
+                  </p>
                 )}
                 {isAdmin && log.amount > 0 && (
                   <div className="bs-total">
@@ -230,13 +227,6 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                     <span className="bs-num">{formatCurrency(log.amount)}</span>
                   </div>
                 )}
-              </section>
-            )}
-
-            {log.photos.length > 0 && (
-              <section className="bs-section">
-                <h4 className="bs-label">Reference photos</h4>
-                <PhotoStrip photos={log.photos} />
               </section>
             )}
 
@@ -325,6 +315,32 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                       </button>
                     </div>
                   ))}
+              </section>
+            )}
+
+            {log.notes && (
+              <section className="bs-section">
+                <h4 className="bs-label">Team notes</h4>
+                <p className="bs-note">{log.notes}</p>
+              </section>
+            )}
+
+            {isAdmin && log.privateNotes && (
+              <section className="bs-section">
+                <h4 className="bs-label">
+                  Private notes
+                  <span className="bs-label-aside">
+                    <LockKeyhole size={13} strokeWidth={1.75} aria-hidden="true" /> Owner and admins
+                  </span>
+                </h4>
+                <p className="bs-note">{log.privateNotes}</p>
+              </section>
+            )}
+
+            {log.photos.length > 0 && (
+              <section className="bs-section">
+                <h4 className="bs-label">Reference photos</h4>
+                <PhotoStrip photos={log.photos} />
               </section>
             )}
 

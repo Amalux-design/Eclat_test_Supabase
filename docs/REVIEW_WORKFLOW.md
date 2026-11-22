@@ -32,6 +32,9 @@ steps 1–4 pass; report what was checked and what could not be.
    - Data: two devices editing at once, lost reply then retry, failed photo
      upload, replies out of order, failed delete, more than 1,000 rows.
    - Setup SQL: run it on an empty database before calling it safe.
+   - Width: no sheet may scroll sideways at 320, 375, 768 or laptop width; test
+     with long names and crore amounts (grid columns need `minmax(0, 1fr)`).
+   - New UI: reuse an existing pattern and compare it with that screen.
    - Zoom: JS coordinates from `getBoundingClientRect` divided by `--z`.
 4. Exercise it in the preview at 375×812 and desktop width. Behind sign-in:
    mount the component or its markup directly and measure (positions,
