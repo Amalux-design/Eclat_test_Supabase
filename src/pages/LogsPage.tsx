@@ -7,7 +7,7 @@ import { LogCard } from "../components/LogCard";
 import { LogForm } from "../components/LogForm";
 import { FAB } from "../components/FAB";
 import { Loader } from "../components/Loader";
-import { addDays, formatDateHeading, todayISO, weekRange } from "../utils/format";
+import { addDays, formatDateHeading, parseWorks, todayISO, weekRange, workLabel } from "../utils/format";
 import type { WorkLog, WorkLogInput } from "../types";
 
 type ChipId = "all" | "today" | "tomorrow" | "week" | "upcoming" | "past" | "pending";
@@ -136,7 +136,7 @@ export function LogsPage() {
       .filter((l) =>
         [
           l.clientName,
-          l.work,
+          parseWorks(l.work).map(workLabel).join(", "),
           l.eventType,
           l.location,
           l.notes,

@@ -100,6 +100,11 @@ create table if not exists public.booking_private (
   updated_at      timestamptz not null default now()
 );
 
+-- Price per unit of each service at the time of booking: {"Hairdo": 2500}.
+-- Here, not in bookings.work, because the team can read that.
+alter table public.booking_private
+  add column if not exists rates jsonb not null default '{}'::jsonb check (jsonb_typeof(rates) = 'object');
+
 -- ---------------------------------------------------------------------------
 -- Reference photos. Files live in the private "reference-photos" bucket;
 -- this table records them. work_date drives the automatic clean-up
@@ -300,16 +305,19 @@ begin
 
   if p is not null then
     insert into booking_private (booking_id, client_phone, alt_phone, qty, price, amount, paid_amount,
-                                 payment_status, own, referrer_name, private_notes)
+                                 payment_status, own, referrer_name, private_notes, rates)
     values (bid, p ->> 'client_phone', p ->> 'alt_phone', coalesce((p ->> 'qty')::int, 1),
             coalesce((p ->> 'price')::numeric, 0), coalesce((p ->> 'amount')::numeric, 0),
             coalesce((p ->> 'paid_amount')::numeric, 0), p ->> 'payment_status',
-            coalesce((p ->> 'own')::boolean, true), p ->> 'referrer_name', p ->> 'private_notes')
+            coalesce((p ->> 'own')::boolean, true), p ->> 'referrer_name', p ->> 'private_notes',
+            coalesce(p -> 'rates', '{}'::jsonb))
     on conflict (booking_id) do update set
       client_phone = excluded.client_phone, alt_phone = excluded.alt_phone, qty = excluded.qty,
       price = excluded.price, amount = excluded.amount, paid_amount = excluded.paid_amount,
       payment_status = excluded.payment_status, own = excluded.own,
-      referrer_name = excluded.referrer_name, private_notes = excluded.private_notes;
+      referrer_name = excluded.referrer_name, private_notes = excluded.private_notes,
+      -- a save that doesn't send rates leaves them as they are
+      rates = case when p ? 'rates' then excluded.rates else booking_private.rates end;
   end if;
 
   return result;

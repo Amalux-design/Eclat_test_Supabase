@@ -34,7 +34,10 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? "");
   const [altPhone, setAltPhone] = useState(initial?.altPhone ?? "");
   // Services in the order picked, each with a count ("2× Classic Bridal").
-  const [works, setWorks] = useState<{ name: string; qty: number; price?: number }[]>(parseWorks(initial?.work ?? "").map(splitQty));
+  const [works, setWorks] = useState<{ name: string; qty: number; price?: number }[]>(() =>
+    // Each service keeps the price it was booked at; without one, the menu's.
+    parseWorks(initial?.work ?? "").map(splitQty).map((w) => ({ ...w, price: w.price ?? servicePrice(w.name) ?? undefined }))
+  );
   const [customRate, setCustomRate] = useState("");
   const [customWork, setCustomWork] = useState("");
   const [eventType, setEventType] = useState(initial?.eventType ?? "");
@@ -48,7 +51,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     if (!initial) return "";
     const savedMenuTotal = parseWorks(initial.work)
       .map(splitQty)
-      .reduce((sum, w) => sum + (servicePrice(w.name) ?? w.price ?? 0) * w.qty, 0);
+      .reduce((sum, w) => sum + (w.price ?? servicePrice(w.name) ?? 0) * w.qty, 0);
     const diff = initial.amount - savedMenuTotal;
     return diff ? String(diff) : "";
   });
@@ -94,6 +97,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const customServices = works.filter((w) => !KNOWN_SERVICES.has(w.name)).map((w) => ({ name: w.name, price: w.price }));
   const qtyByName = Object.fromEntries(works.map((w) => [w.name, w.qty]));
 
+  const priceByName = Object.fromEntries(works.map((w) => [w.name, w.price]));
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -103,7 +108,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
   // Menu prices add up automatically.
   const menuTotal = useMemo(
-    () => works.reduce((sum, w) => sum + (servicePrice(w.name) ?? w.price ?? 0) * w.qty, 0),
+    () => works.reduce((sum, w) => sum + (w.price ?? 0) * w.qty, 0),
     [works]
   );
   const extraNum = Number(extra.replace(/[^\d.-]/g, "")) || 0;
@@ -114,14 +119,14 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       if (qty <= 0) return prev.filter((w) => w.name !== name);
       return prev.some((w) => w.name === name)
         ? prev.map((w) => (w.name === name ? { ...w, qty } : w))
-        : [...prev, { name, qty }];
+        : [...prev, { name, qty, price: servicePrice(name) ?? undefined }];
     });
   }
 
   function addCustomWork() {
     const w = customWork.replace(/,/g, "").trim();
     if (!w) return;
-    const price = Number(customRate.replace(/\D/g, "")) || undefined;
+    const price = Number(customRate.replace(/\D/g, "")) || (servicePrice(w) ?? undefined);
     setWorks((prev) => (prev.some((x) => x.name === w) ? prev : [...prev, { name: w, qty: 1, price }]));
     setCustomRate("");
     setCustomWork("");
@@ -147,7 +152,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       clientName: clientName.trim(),
       clientPhone: normalizePhone(clientPhone),
       altPhone: normalizePhone(altPhone),
-      work: joinWorks(works.map((w) => withQty(w.name, w.qty, KNOWN_SERVICES.has(w.name) ? undefined : w.price))),
+      work: joinWorks(works.map((w) => withQty(w.name, w.qty, w.price))),
       eventType,
       location: location.trim(),
       bridesmaids,
@@ -283,7 +288,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
           <fieldset className="form-section">
             <legend>Services</legend>
-            <ServiceTiles qty={qtyByName} onChange={setWorkQty} custom={customServices} />
+            <ServiceTiles qty={qtyByName} prices={priceByName} onChange={setWorkQty} custom={customServices} />
 
             <div className="quote-custom">
               <input

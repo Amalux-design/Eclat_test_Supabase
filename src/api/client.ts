@@ -5,6 +5,8 @@ import { PHOTO_BUCKET, supabase } from "../lib/supabase";
 import type { BookingPhoto, Member, Role, WorkLog, WorkLogInput } from "../types";
 import { compressPhoto } from "../utils/image";
 import { generateId } from "../utils/id";
+import { splitRates, withRates } from "../utils/rates";
+import type { Rates } from "../utils/rates";
 
 export type ApiErrorCode = "AUTH" | "CONFLICT" | "NOT_FOUND" | "VALIDATION" | "NETWORK" | "ERROR";
 
@@ -63,6 +65,7 @@ interface PrivateRow {
   own: boolean;
   referrer_name: string;
   private_notes: string;
+  rates?: Rates | null;
 }
 
 function fromRow(r: BookingRow): WorkLog {
@@ -71,7 +74,8 @@ function fromRow(r: BookingRow): WorkLog {
     id: r.id,
     date: String(r.date).slice(0, 10),
     clientName: r.client_name ?? "",
-    work: r.work ?? "",
+    // Prices only for those who get the private row; everyone else gets names alone.
+    work: p ? withRates(r.work ?? "", p.rates) : splitRates(r.work ?? "").work,
     eventType: r.event_type ?? "",
     location: r.location ?? "",
     bridesmaids: Number(r.bridesmaids) || 0,
@@ -101,7 +105,7 @@ function publicPart(log: WorkLogInput & { id: string }) {
     id: log.id,
     date: log.date,
     client_name: log.clientName,
-    work: log.work,
+    work: splitRates(log.work).work,
     event_type: log.eventType,
     location: log.location,
     bridesmaids: log.bridesmaids,
@@ -124,6 +128,7 @@ function privatePart(log: WorkLogInput) {
     own: log.own,
     referrer_name: log.referrerName,
     private_notes: log.privateNotes,
+    rates: splitRates(log.work).rates,
   };
 }
 

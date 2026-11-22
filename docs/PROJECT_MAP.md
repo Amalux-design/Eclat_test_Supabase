@@ -18,7 +18,7 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 | Pages | `src/pages/CalendarPage.tsx`, `LogsPage.tsx` (sticky title + chips block, search, sticky date headings), `PaymentsPage.tsx` (year filter, totals card, Month/Client ledger, payment sheet) |
 | Booking UI | `LogForm.tsx` (asks before discarding unsaved changes), `LogCard.tsx` (compact card: time, Call, name, price, services, badges, photo hint; tap → sheet), `BookingSheet.tsx` (details sheet on every tab: facts list, receipt, paid bar + Record payment, Call/Edit/⋯), `ServiceTiles.tsx` (tiles + qty stepper), `Photos.tsx` (picker, strip, viewer with prev/next), `Pickers.tsx` (date/time/select sheets) |
 | Documents | `src/utils/invoice.ts` (one PDF engine: invoice and quotation from the sheet's ⋯ menu `MoreMenu.tsx`; wrapping, page breaks, policy page, non-Latin text drawn as images, time-stamped file names). Price lines come from `utils/lineItems.ts`, shared with the booking sheet. |
-| Business data | `src/data/services.ts` (price menu, `servicePrice`), `src/data/business.ts` (address, phone, email, UPI/bank, quote policy, default note) |
+| Business data | `src/data/services.ts` (price menu, `servicePrice`; only the default, a booking keeps its own prices), `src/data/business.ts` (address, phone, email, UPI/bank, quote policy, default note) |
 | Shell & motion | `AppHeader.tsx`, `BottomNav.tsx` (exports `TABS`), `utils/useSwipeTabs.ts` (finger-follow swipe between tabs, `data-swipe` entrance), `utils/splash.ts` (logo glides into header), `utils/useSheet.ts` (slide-away close, drag-down-to-close on phones/tablets, `requestClose` with `confirmDismiss`), `utils/backgroundLock.ts` (page behind any open overlay never scrolls), `Sheet.tsx`, `ConfirmDialog.tsx`, `Notice.tsx` |
 | Styles | `src/index.css` (tokens on `:root`, then layered sections; laptop block `@media (min-width:1024px)`; laptop zoom ≥1360px) |
 | Backend | `supabase/schema.sql`, `supabase/hardening.sql`, `supabase/archive-members.sql`, `supabase/backup.sql`, `supabase/README.md` |
@@ -27,8 +27,8 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 
 ## Data model (Postgres, RLS on all tables)
 - `members(email PK, name, role owner|admin|team, active, archived)` — who may use the app; "Delete" = `archive_member()` (hide + remove login), never a row delete.
-- `bookings` — fields everyone on the team may see (date, client name, services text, event, venue, bridesmaids, status, times, team notes).
-- `booking_private` — phones, qty/price/amount, paid amount, payment status, referral, "Notes for me". Admin/owner only.
+- `bookings` — fields everyone on the team may see (date, client name, services text (names and quantities, no prices), event, venue, bridesmaids, status, times, team notes).
+- `booking_private` — phones, qty/price/amount, `rates` (price per service as booked), paid amount, payment status, referral, "Notes for me". Admin/owner only.
 - `booking_photos` — storage paths + `work_date` (kept in sync with the booking date by trigger).
 - Storage bucket `reference-photos` (private, signed URLs, 5 MB, images only).
 - Helper functions: `app_role`, `is_member`, `is_admin`, `is_owner`, `is_invited`; trigger `protect_owner`; RPC `save_booking(b, p, base)`; `backup_export(secret)`.

@@ -9,18 +9,18 @@ export interface LineItem {
   rate?: number; // per unit; none on a combined or adjustment line
   qty?: number; // none on a combined or adjustment line
   amount: number;
-  adjustment?: boolean; // "Discount" / "Additional services": booked total vs menu prices
+  adjustment?: boolean; // "Discount" / "Additional services": booked total vs service prices
 }
 
 /**
- * Menu price per service; any difference from the booked total becomes one
+ * Each service's price as booked (else the menu's); any difference from the booked total becomes one
  * adjustment line. A single service, a booking with no menu prices, or a ₹0
  * booking is one line carrying the booked amount (nothing itemised to explain).
  */
 export function lineItems(log: Pick<WorkLog, "work" | "amount">): LineItem[] {
   const services = parseWorks(log.work).map(splitQty);
   const priced = services.map((s) => {
-    const rate = servicePrice(s.name) ?? s.price ?? 0;
+    const rate = s.price ?? servicePrice(s.name) ?? 0;
     return { label: s.name, rate, qty: s.qty, amount: rate * s.qty };
   });
   const menuTotal = priced.reduce((sum, l) => sum + l.amount, 0);

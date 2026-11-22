@@ -45,6 +45,9 @@ Audit fixes 2026-11-23, steps 8-10 (each tested by the developer):
 - A typed custom service can't be dropped by Save.
 - A retried, repeated or stale payment asks instead of adding or vanishing.
 
+Audit fix 2026-11-23, step 11 (app part; existing rows still to be migrated):
+- Each booking saves its service prices in the private row and keeps them when the menu changes.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.

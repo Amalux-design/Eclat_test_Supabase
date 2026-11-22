@@ -25,7 +25,7 @@ begin
     select json_build_object(
       'id', b.id, 'date', b.date, 'client_name', b.client_name,
       'client_phone', p.client_phone, 'alt_phone', p.alt_phone,
-      'services', b.work, 'event', b.event_type, 'venue', b.location,
+      'services', b.work, 'rates', p.rates::text, 'event', b.event_type, 'venue', b.location,
       'bridesmaids', b.bridesmaids, 'start_time', b.start_time, 'ready_by', b.end_time,
       'status', b.status, 'amount', p.amount, 'paid_amount', p.paid_amount,
       'payment_status', p.payment_status, 'own', p.own, 'referrer', p.referrer_name,

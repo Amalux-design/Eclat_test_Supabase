@@ -12,7 +12,7 @@ const COLUMNS = [
   "date", "client_name", "client_phone", "alt_phone", "services", "event", "venue",
   "bridesmaids", "start_time", "ready_by", "status", "amount", "paid_amount",
   "payment_status", "own", "referrer", "team_notes", "private_notes",
-  "created_at", "updated_at", "id",
+  "created_at", "updated_at", "id", "rates",
 ];
 
 function backupNow() {

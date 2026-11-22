@@ -36,3 +36,5 @@
 | A confirmed save is shown before the reload | A failed reload must not leave old values to edit from. |
 | A quick payment saves only if Received and Total are as the person saw them; otherwise it asks | A lost reply, a double tap and a second person's equal payment look identical, so a person decides. No payment table needed. |
 | Save stops while a typed custom service hasn't been added | Auto-adding would change the total after the person last saw it. |
+| Each booking keeps every service's unit price in `booking_private.rates` | The team can read `bookings.work`, so it holds names and quantities only; a later menu change doesn't rewrite old invoices. Only `api/client.ts` converts (`utils/rates.ts`). |
+| The standard price menu stays in the app bundle | Developer decision 2026-11-23: only custom prices and each booking's money are private. |

@@ -48,7 +48,7 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
       const wd = (new Date(l.date + "T00:00").getDay() + 6) % 7; // Monday first
       weekdays[wd].count++;
       for (const w of parseWorks(l.work).map(splitQty)) {
-        const v = (servicePrice(w.name) ?? w.price ?? 0) * w.qty;
+        const v = (w.price ?? servicePrice(w.name) ?? 0) * w.qty;
         if (v > 0) services.set(w.name, (services.get(w.name) ?? 0) + v);
       }
       const c = l.clientName || "Unnamed client";

@@ -7,6 +7,8 @@ interface ServiceTilesProps {
   qty: Record<string, number>;
   /** 0 removes the service. */
   onChange: (name: string, qty: number) => void;
+  /** What selected services were booked at, which the menu may no longer match. */
+  prices?: Record<string, number | undefined>;
   /** Extra tiles for services not on the menu. */
   custom?: { name: string; price?: number }[];
 }
@@ -15,7 +17,7 @@ interface ServiceTilesProps {
  * The service menu as tiles. Tap to select; a selected tile shows a stepper
  * for "2× Classic Bridal". Tapping the tile again, or − at 1, removes it.
  */
-export function ServiceTiles({ qty, onChange, custom = [] }: ServiceTilesProps) {
+export function ServiceTiles({ qty, onChange, prices = {}, custom = [] }: ServiceTilesProps) {
   const tile = (name: string, priceLabel: string) => {
     const n = qty[name] ?? 0;
     const active = n > 0;
@@ -51,7 +53,10 @@ export function ServiceTiles({ qty, onChange, custom = [] }: ServiceTilesProps) 
         <div key={group.title} className="service-group">
           <div className="service-group-title">{group.title}</div>
           <div className="service-options">
-            {group.services.map((s) => tile(s.name, s.price ? formatCurrency(s.price) : "On call"))}
+            {group.services.map((s) => {
+              const price = prices[s.name] ?? s.price;
+              return tile(s.name, price ? formatCurrency(price) : "On call");
+            })}
           </div>
         </div>
       ))}
