@@ -37,12 +37,15 @@ interface BookingSheetProps {
  */
 export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProps) {
   const { isAdmin } = useAuth();
-  const { logs, removeLog, markPaid, recordPayment } = useLogs();
+  const { logs, removeLog, recordPayment } = useLogs();
   const confirm = useConfirm();
   const notify = useNotice();
   const [payOpen, setPayOpen] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
   const [partialValue, setPartialValue] = useState("");
+  const [paying, setPaying] = useState(false);
+  // The booking as it was when the amount was started: a retry never adds on top of itself.
+  const [payFrom, setPayFrom] = useState<WorkLog | null>(null);
 
   // Always show the latest saved version (edits and payments land live).
   const log = logs.find((l) => l.id === initial.id) ?? initial;
@@ -73,26 +76,62 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
     }
   }
 
+  /** Save a payment (add = null: the full total), asking first if the money changed meanwhile. */
+  async function pay(seen: WorkLog, add: number | null) {
+    let from = seen;
+    for (;;) {
+      const was = receivedOf(from);
+      let changed: WorkLog | null;
+      setPaying(true);
+      try {
+        changed = await recordPayment(from, add === null ? Math.max(from.amount, was) : was + add);
+      } catch (err) {
+        notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
+        return;
+      } finally {
+        setPaying(false);
+      }
+      if (!changed) return closePay();
+
+      const now = receivedOf(changed);
+      if (add === null && changed.amount > 0 && now >= changed.amount) {
+        notify("Already paid in full. Nothing was added.");
+        return closePay();
+      }
+      const ok = await confirm(
+        now !== was && add !== null
+          ? {
+              title: `Add another ${formatCurrency(add)}?`,
+              message: `Received changed from ${formatCurrency(was)} to ${formatCurrency(now)}. If that was this payment, it's already saved. Adding makes it ${formatCurrency(now + add)}.`,
+              confirmLabel: "Add",
+              cancelLabel: "Don't add",
+            }
+          : {
+              title: "This booking changed",
+              message: `The total is now ${formatCurrency(changed.amount)}, with ${formatCurrency(now)} received. Record ${formatCurrency(add === null ? changed.amount : now + add)} as received in all?`,
+              confirmLabel: "Record",
+            }
+      );
+      if (!ok) return closePay();
+      from = changed;
+    }
+  }
+
   async function payFull() {
+    const seen = log; // save exactly what the question showed
     const ok = await confirm({
       title: "Mark as fully paid?",
-      message: `${log.clientName || "This booking"} will show ${formatCurrency(log.amount)} received.`,
+      message: `${seen.clientName || "This booking"} will show ${formatCurrency(seen.amount)} received.`,
       confirmLabel: "Mark paid",
     });
-    if (!ok) return;
-    try {
-      await markPaid(log.id);
-      setPayOpen(false);
-      setPartialOpen(false);
-    } catch (err) {
-      notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
-    }
+    if (ok) await pay(seen, null);
   }
 
   function closePay() {
     setPayOpen(false);
     setPartialOpen(false);
     setPartialValue("");
+    setPayFrom(null);
   }
 
   return (
@@ -235,7 +274,7 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                   ) : (
                     <div className="bs-pay-choice">
                       <div className="bs-pay-options">
-                        <button type="button" className="bs-action primary" onClick={() => void payFull()}>
+                        <button type="button" className="bs-action primary" disabled={paying} onClick={() => void payFull()}>
                           Full {formatCurrency(balance)}
                         </button>
                         <button
@@ -250,16 +289,11 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                       {partialOpen && (
                         <form
                           className="partial-form"
-                          onSubmit={async (e) => {
+                          onSubmit={(e) => {
                             e.preventDefault();
                             const add = Number(partialValue);
-                            if (!add || add <= 0) return;
-                            try {
-                              await recordPayment(log.id, received + add);
-                              closePay();
-                            } catch (err) {
-                              notify(err instanceof Error ? err.message : "Couldn't save. Try again.", "error");
-                            }
+                            if (paying || !add || add <= 0) return;
+                            void pay(payFrom ?? log, add);
                           }}
                         >
                           <label className="field-label" htmlFor="bs-partial">Amount received now</label>
@@ -273,16 +307,20 @@ export function BookingSheet({ log: initial, onClose, onEdit }: BookingSheetProp
                               autoFocus
                               className="field-input"
                               value={partialValue}
-                              onChange={(e) => setPartialValue(e.target.value)}
+                              disabled={paying}
+                              onChange={(e) => {
+                                if (!partialValue) setPayFrom(log);
+                                setPartialValue(e.target.value);
+                              }}
                               placeholder={`Up to ${formatCurrency(balance)}`}
                             />
-                            <button type="submit" className="save-pill" disabled={!Number(partialValue)}>
-                              Save
+                            <button type="submit" className="save-pill" disabled={paying || !Number(partialValue)}>
+                              {paying ? "Saving…" : "Save"}
                             </button>
                           </div>
                         </form>
                       )}
-                      <button type="button" className="text-btn bs-pay-cancel" onClick={closePay}>
+                      <button type="button" className="text-btn bs-pay-cancel" disabled={paying} onClick={closePay}>
                         Cancel
                       </button>
                     </div>

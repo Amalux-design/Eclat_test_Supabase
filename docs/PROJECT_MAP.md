@@ -13,7 +13,7 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 |---|---|
 | Supabase client | `src/lib/supabase.ts` (cleans pasted env values, accepts publishable or legacy anon keys, refuses secret keys and signed-out data requests) |
 | Auth & roles | `src/context/AuthContext.tsx` (status loading/signed-out/no-access/ready; signIn, createAccount, changePassword, signOut, recheck; isAdmin/isOwner; numbered checks, last confirmed role as fallback) |
-| Data | `src/context/LogsContext.tsx` (fetch, realtime, add/edit/remove/markPaid/recordPayment, conflict handling via `utils/editMerge.ts`, numbered refreshes, `saving` count → logo shimmer), `src/api/client.ts` (every Supabase call; `ApiError` codes AUTH/CONFLICT/NOT_FOUND/VALIDATION/NETWORK/ERROR) |
+| Data | `src/context/LogsContext.tsx` (fetch, realtime, add/edit/remove/recordPayment, conflict handling via `utils/editMerge.ts`, numbered refreshes, `saving` count → logo shimmer), `src/api/client.ts` (every Supabase call; `ApiError` codes AUTH/CONFLICT/NOT_FOUND/VALIDATION/NETWORK/ERROR) |
 | Cache | `src/utils/localCache.ts` — last booking list per role in localStorage for instant first paint; cleared on sign-out |
 | Pages | `src/pages/CalendarPage.tsx`, `LogsPage.tsx` (sticky title + chips block, search, sticky date headings), `PaymentsPage.tsx` (year filter, totals card, Month/Client ledger, payment sheet) |
 | Booking UI | `LogForm.tsx` (asks before discarding unsaved changes), `LogCard.tsx` (compact card: time, Call, name, price, services, badges, photo hint; tap → sheet), `BookingSheet.tsx` (details sheet on every tab: facts list, receipt, paid bar + Record payment, Call/Edit/⋯), `ServiceTiles.tsx` (tiles + qty stepper), `Photos.tsx` (picker, strip, viewer with prev/next), `Pickers.tsx` (date/time/select sheets) |
@@ -35,7 +35,7 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 
 ## Workflows
 - **Sign-in:** email + password; "Confirm email" OFF; app sends no email. First time: `is_invited` check → sign-up. DB trigger (`hardening.sql`) also refuses uninvited sign-ups and API email changes.
-- **Save:** online only. `save_booking` (security invoker) writes `bookings` + `booking_private` atomically; with `base` it checks `updated_at` → `CONFLICT` if another device changed it. Form stays open on failure. Edits send changed fields, merged after a warning; a new booking keeps its id across retries.
+- **Save:** online only. `save_booking` (security invoker) writes `bookings` + `booking_private` atomically; with `base` it checks `updated_at` → `CONFLICT` if another device changed it. Form stays open on failure. Edits send changed fields, merged after a warning; a new booking keeps its id across retries. Confirmed saves show at once; `recordPayment` returns the booking instead of saving when its money changed, and the sheet asks.
 - **Load:** pages of 1,000 by id, then sorted by date; older replies are ignored.
 - **Delete:** row first; files only once the row is confirmed gone (best effort).
 - **Live updates:** realtime on bookings, booking_photos, booking_private (admins), members (instant revoke/role change); refetch on app foreground; 1-minute heartbeat.

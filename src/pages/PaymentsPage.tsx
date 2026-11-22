@@ -202,7 +202,7 @@ export function PaymentsPage() {
         <LogForm
           title="Edit booking"
           initial={editing}
-          onSubmit={(changes, photos) => editLog(editing.id, changes, photos, editing)}
+          onSubmit={(changes, photos, formId) => editLog(editing.id, changes, photos, { id: formId, opened: editing })}
           onClose={() => setEditing(null)}
         />
       )}

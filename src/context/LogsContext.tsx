@@ -12,6 +12,12 @@ import { useAuth } from "./AuthContext";
 // is confirmed. Other devices learn about changes instantly through Supabase
 // Realtime, so there's no polling and no offline queue.
 
+/** An open edit form: the version it started from, and an id that is new each time a form opens. */
+interface EditForm {
+  id: string;
+  opened: WorkLog;
+}
+
 interface LogsContextValue {
   logs: WorkLog[];
   loading: boolean;
@@ -23,12 +29,14 @@ interface LogsContextValue {
   refetch: () => Promise<void>;
   /** `id` comes from the form, so retrying a save can't create a second booking. */
   addLog: (input: WorkLogInput, photos: PhotoChanges, id: string) => Promise<void>;
-  /** `opened` is the version the edit started from. */
-  editLog: (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, opened?: WorkLog) => Promise<void>;
+  editLog: (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, form?: EditForm) => Promise<void>;
   removeLog: (id: string) => Promise<void>;
-  markPaid: (id: string) => Promise<void>;
-  /** Record the total received so far; reaching the full amount marks it paid. */
-  recordPayment: (id: string, received: number) => Promise<void>;
+  /**
+   * Set the total received, starting from the booking as the person saw it. If its money
+   * changed since (an earlier tap, a lost reply, another device) nothing is saved and the
+   * booking as it now stands is returned, so the person can be asked.
+   */
+  recordPayment: (seen: WorkLog, received: number) => Promise<WorkLog | null>;
   logsByDate: Map<string, WorkLog[]>;
   logsByMonth: Map<string, WorkLog[]>;
 }
@@ -216,48 +224,62 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     [applyPhotos, refetch]
   );
 
+  /** Show a confirmed save at once: the reload that follows can fail, and older loads are now out of date. */
+  const showSaved = useCallback(
+    (saved: WorkLog) => {
+      loadsRef.current.shown = ++loadsRef.current.started;
+      if (!adminRef.current) return; // signed out or no longer admin while saving
+      commit([saved, ...logsRef.current.filter((l) => l.id !== saved.id)]);
+    },
+    [commit]
+  );
+
   const addLog = useCallback(
     async (input: WorkLogInput, photos: PhotoChanges, id: string) => {
       await run(async () => {
-        await api.saveBooking({ ...input, id }, null);
+        const savedAt = await api.saveBooking({ ...input, id }, null);
+        const shown = logsRef.current.find((l) => l.id === id);
+        showSaved({ ...input, id, photos: shown?.photos ?? [], createdAt: shown?.createdAt ?? savedAt, updatedAt: savedAt });
         await finishSave(id, input.date, photos);
       });
     },
-    [run, finishSave]
+    [run, finishSave, showSaved]
   );
 
-  // Per open form: the newest version it has been warned about or saved itself,
-  // and the fields it has already written.
-  const editsRef = useRef(new WeakMap<WorkLog, { seen: string; written: (keyof WorkLogInput)[] }>());
+  // Per open form (by its id, never by booking: reopening must start clean): the newest
+  // version it has been warned about or saved itself, and the fields it has written.
+  const editsRef = useRef(new Map<string, { seen: string; written: (keyof WorkLogInput)[] }>());
 
   const editLog = useCallback(
-    async (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, opened?: WorkLog) => {
+    async (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, form?: EditForm) => {
       await run(async () => {
-        const from = opened ?? logsRef.current.find((l) => l.id === id);
+        const from = form?.opened ?? logsRef.current.find((l) => l.id === id);
         const latest = from && (await api.fetchBooking(id, adminRef.current));
         if (!from || !latest) {
           throw new ApiError("This booking was deleted on another device. Copy anything you need, then close it.", "NOT_FOUND");
         }
         // Only a form can acknowledge a warning; a quick payment always starts from the latest total.
-        const edit = opened && editsRef.current.get(opened);
+        const edit = form && editsRef.current.get(form.id);
         // A field written by an earlier attempt and since put back is put back on the server too.
         const changes: Partial<WorkLogInput> = {};
-        for (const key of edit?.written ?? []) Object.assign(changes, { [key]: from[key] });
+        for (const key of edit?.written ?? []) Object.assign(changes, { [key]: key === "paidAmount" ? receivedOf(from) : from[key] });
         Object.assign(changes, patch);
 
         const next = mergeEdit(latest, changes);
         // Already holds exactly these values: a repeated tap after a lost reply.
         const landed = Object.keys(changes).length > 0 && sameBooking(latest, next);
         if (!landed && latest.updatedAt !== from.updatedAt && latest.updatedAt !== edit?.seen) {
-          if (opened) editsRef.current.set(opened, { seen: latest.updatedAt, written: edit?.written ?? [] });
+          if (form) editsRef.current.set(form.id, { seen: latest.updatedAt, written: edit?.written ?? [] });
           throw new ApiError(changeWarning(from, latest, changes), "CONFLICT");
         }
         const savedAt = landed ? latest.updatedAt : await api.saveBooking(next, latest.updatedAt);
-        if (opened) editsRef.current.set(opened, { seen: savedAt, written: Object.keys(changes) as (keyof WorkLogInput)[] });
+        if (form) editsRef.current.set(form.id, { seen: savedAt, written: Object.keys(changes) as (keyof WorkLogInput)[] });
+        showSaved(landed ? latest : { ...next, updatedAt: savedAt });
         await finishSave(id, next.date, photos);
+        if (form) editsRef.current.delete(form.id);
       });
     },
-    [run, finishSave]
+    [run, finishSave, showSaved]
   );
 
   const removeLog = useCallback(
@@ -273,26 +295,22 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     [run, commit]
   );
 
-  const markPaid = useCallback(
-    async (id: string) => {
-      const current = logsRef.current.find((l) => l.id === id);
-      if (!current) return;
-      await editLog(id, { paymentStatus: "PAID", paidAmount: Math.max(current.amount, receivedOf(current)) });
-    },
-    [editLog]
-  );
-
   const recordPayment = useCallback(
-    async (id: string, received: number) => {
-      const current = logsRef.current.find((l) => l.id === id);
-      if (!current) return;
-      const paid = Math.max(0, received);
-      await editLog(id, {
-        paidAmount: paid,
-        paymentStatus: paid >= current.amount && current.amount > 0 ? "PAID" : "PENDING",
-      });
-    },
-    [editLog]
+    (seen: WorkLog, received: number) =>
+      run(async () => {
+        const latest = await api.fetchBooking(seen.id, adminRef.current);
+        if (!latest) throw new ApiError("This booking was deleted on another device.", "NOT_FOUND");
+        if (receivedOf(latest) !== receivedOf(seen) || latest.amount !== seen.amount) {
+          showSaved(latest);
+          return latest;
+        }
+        const next = mergeEdit(latest, { paidAmount: Math.max(0, received) });
+        const savedAt = await api.saveBooking(next, latest.updatedAt);
+        showSaved({ ...next, updatedAt: savedAt });
+        await refetch();
+        return null;
+      }),
+    [run, showSaved, refetch]
   );
 
   const logsByDate = useMemo(() => {
@@ -327,12 +345,11 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       addLog,
       editLog,
       removeLog,
-      markPaid,
       recordPayment,
       logsByDate,
       logsByMonth,
     }),
-    [logs, loading, settled, error, saving, refetch, addLog, editLog, removeLog, markPaid, recordPayment, logsByDate, logsByMonth]
+    [logs, loading, settled, error, saving, refetch, addLog, editLog, removeLog, recordPayment, logsByDate, logsByMonth]
   );
 
   return <LogsContext.Provider value={value}>{children}</LogsContext.Provider>;

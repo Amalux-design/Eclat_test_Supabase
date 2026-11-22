@@ -32,3 +32,7 @@
 | Team edits update one field, conditional on the state shown | An old screen can't undo someone else's change. |
 | Data requests without a user login are refused on the device | An unrenewable login would otherwise get real-looking signed-out answers (empty list, 0 rows). Only `is_invited` is exempt. |
 | The last confirmed role is remembered for display | A failed access check doesn't hide the owner's screens; the next refresh corrects it and RLS still decides. |
+| Edit retry state is keyed by the open form's id | Reopening a booking must start clean, or an old acknowledgement undoes newer work. |
+| A confirmed save is shown before the reload | A failed reload must not leave old values to edit from. |
+| A quick payment saves only if Received and Total are as the person saw them; otherwise it asks | A lost reply, a double tap and a second person's equal payment look identical, so a person decides. No payment table needed. |
+| Save stops while a typed custom service hasn't been added | Auto-adding would change the total after the person last saw it. |

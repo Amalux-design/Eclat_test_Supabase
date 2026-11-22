@@ -40,6 +40,11 @@ Audit fixes 2026-11-22, steps 1-7 (each tested by the developer):
 - An old Team screen can't undo a change made elsewhere.
 - A failed access check or unrenewable login no longer changes what the app shows or deletes.
 
+Audit fixes 2026-11-23, steps 8-10 (each tested by the developer):
+- Editing again no longer undoes the previous save.
+- A typed custom service can't be dropped by Save.
+- A retried, repeated or stale payment asks instead of adding or vanishing.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.

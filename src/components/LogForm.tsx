@@ -64,6 +64,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [draftId] = useState(generateId);
   const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
   const [error, setError] = useState<string | null>(null);
+  const [unaddedWarned, setUnaddedWarned] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<BookingPhoto[]>([]);
@@ -124,6 +125,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     setWorks((prev) => (prev.some((x) => x.name === w) ? prev : [...prev, { name: w, qty: 1, price }]));
     setCustomRate("");
     setCustomWork("");
+    setUnaddedWarned(false);
   }
 
   // New bookings start as Booked; "Done" is set later (here or "Mark as done").
@@ -174,6 +176,14 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     if (!clientName.trim()) {
       setError("Add the client's name to save this booking.");
       document.getElementById("f-name")?.focus();
+      return;
+    }
+    // A typed service only counts once added: never save without it silently.
+    if (customWork.trim() || customRate) {
+      setUnaddedWarned(true);
+      const box = document.getElementById("f-custom");
+      box?.focus();
+      box?.scrollIntoView({ block: "center" });
       return;
     }
     if (submitting) return;
@@ -277,6 +287,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
 
             <div className="quote-custom">
               <input
+                id="f-custom"
                 className="field-input"
                 value={customWork}
                 onChange={(e) => setCustomWork(e.target.value)}
@@ -294,6 +305,12 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 inputMode="numeric"
                 value={customRate}
                 onChange={(e) => setCustomRate(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomWork();
+                  }
+                }}
                 placeholder="Rate ₹"
                 aria-label="Custom service rate"
               />
@@ -301,6 +318,11 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 <Plus size={16} /> Add
               </button>
             </div>
+            {unaddedWarned && (customWork.trim() || customRate) && (
+              <p className="field-hint warn" role="alert">
+                Not saved yet: {customWork.trim() ? "tap Add to include this service" : "this rate needs a service name"}, or clear both boxes.
+              </p>
+            )}
 
             <label className="field-label">Bridesmaids' makeup</label>
             <div className="stepper">
