@@ -178,8 +178,14 @@ export const api = {
   },
 
   async deleteBooking(log: Pick<WorkLog, "id" | "photos">): Promise<void> {
-    const { error } = await supabase.from("bookings").delete().eq("id", log.id);
+    const { data, error } = await supabase.from("bookings").delete().eq("id", log.id).select("id");
     if (error) throw toApiError(error, "Couldn't delete the booking.");
+    if (!data?.length) {
+      // Nothing deleted: fine if it's already gone, refused if it's still there.
+      const check = await supabase.from("bookings").select("id").eq("id", log.id).maybeSingle();
+      if (check.error) throw toApiError(check.error, "Couldn't delete the booking.");
+      if (check.data) throw new ApiError("You don't have permission to delete this booking.", "AUTH");
+    }
     // Only now: files can't be brought back. A failure here leaves an unused file, nothing worse.
     if (log.photos.length) await removePhotoFiles(log.photos).catch((e) => console.warn("Photo files left behind:", e));
   },
@@ -276,11 +282,33 @@ export const api = {
     }));
   },
 
-  async saveMember(m: { email: string; name: string; role: Role; active: boolean }): Promise<void> {
-    const { error } = await supabase
+  /** Add someone new, or bring back someone who was deleted. Never overwrites a person still on the list. */
+  async addMember(m: { email: string; name: string; role: Role }): Promise<void> {
+    const email = m.email.trim().toLowerCase();
+    const row = { name: m.name.trim(), role: m.role, active: true, archived: false };
+    const { error } = await supabase.from("members").insert({ email, ...row });
+    if (!error) return;
+    // 23505 = that email already has a row.
+    if (error.code !== "23505") throw toApiError(error, "Couldn't add the team member.");
+    const revived = await supabase.from("members").update(row).eq("email", email).eq("archived", true).select("email");
+    if (revived.error) throw toApiError(revived.error, "Couldn't add the team member.");
+    if (!revived.data?.length)
+      throw new ApiError("That email is already on the team. Use the list to change their role or restore them.", "VALIDATION");
+  },
+
+  /** Change one thing, only if the person is still as this screen showed them (an old screen can't undo a removal). */
+  async updateMember(seen: Member, change: { role: Role } | { active: boolean }): Promise<void> {
+    const { data, error } = await supabase
       .from("members")
-      .upsert({ email: m.email.trim().toLowerCase(), name: m.name.trim(), role: m.role, active: m.active, archived: false });
+      .update(change)
+      .eq("email", seen.email)
+      .eq("role", seen.role)
+      .eq("active", seen.active)
+      .eq("archived", false)
+      .select("email");
     if (error) throw toApiError(error, "Couldn't save the team member.");
+    if (!data?.length)
+      throw new ApiError("Nothing changed: this person was updated on another device. Check the list and try again.", "CONFLICT");
   },
 
   /** Owner only: hide a removed member from the list and delete their login (see supabase/archive-members.sql). */

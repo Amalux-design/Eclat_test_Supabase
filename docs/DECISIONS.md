@@ -26,3 +26,9 @@
 | Delete removes the booking row before its photo files | A failed delete must not leave a booking with broken photos. |
 | `schema.sql` has no default owner | An unedited setup stops and creates nothing; a re-run never adds a second owner. |
 | Production is a fresh copy in the client's own accounts, starting empty | The test deployment stays the developer's; nothing is imported or repointed. |
+| `schema.sql` grants API access explicitly | New Supabase projects grant none by default; every new table needs its own grant. |
+| Role helpers answer true or false, never NULL | `if not <NULL>` skips a guard in PL/pgSQL. |
+| The owner row is changed only in the SQL Editor | The owner can't lock themselves out from the app. |
+| Team edits update one field, conditional on the state shown | An old screen can't undo someone else's change. |
+| Data requests without a user login are refused on the device | An unrenewable login would otherwise get real-looking signed-out answers (empty list, 0 rows). Only `is_invited` is exempt. |
+| The last confirmed role is remembered for display | A failed access check doesn't hide the owner's screens; the next refresh corrects it and RLS still decides. |

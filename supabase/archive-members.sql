@@ -17,7 +17,7 @@ as $$
 declare
   e text := lower(trim(p_email));
 begin
-  if not public.is_owner() then
+  if public.is_owner() is not true then
     raise exception 'FORBIDDEN: only the owner can delete team members';
   end if;
   if exists (select 1 from public.members where email = e and role = 'owner') then

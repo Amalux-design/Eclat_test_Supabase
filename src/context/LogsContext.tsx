@@ -40,7 +40,7 @@ function sortDesc(list: WorkLog[]): WorkLog[] {
 }
 
 export function LogsProvider({ children }: { children: ReactNode }) {
-  const { status, isAdmin, recheck } = useAuth();
+  const { status, role, isAdmin, recheck } = useAuth();
   const ready = status === "ready";
 
   const [logs, setLogs] = useState<WorkLog[]>(() => readLogsCache(isAdmin)?.logs ?? []);
@@ -50,10 +50,12 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const [saving, setSaving] = useState(0);
   const logsRef = useRef(logs);
   const adminRef = useRef(isAdmin);
+  const roleRef = useRef(role);
   useLayoutEffect(() => {
     logsRef.current = logs;
     adminRef.current = isAdmin;
-  }, [logs, isAdmin]);
+    roleRef.current = role;
+  }, [logs, isAdmin, role]);
 
   const commit = useCallback((next: WorkLog[]) => {
     const sorted = sortDesc(next);
@@ -68,12 +70,18 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     try {
       // Re-check the role alongside every load: a removed member's rows are
       // simply filtered out by the database, so ask explicitly.
-      const [data, role] = await Promise.all([api.fetchBookings(adminRef.current), api.myRole()]);
-      if (!role) {
+      const asAdmin = adminRef.current;
+      const [data, current] = await Promise.all([api.fetchBookings(asAdmin), api.myRole()]);
+      if (!current) {
         void recheck();
         return;
       }
       if (load < loadsRef.current.shown) return;
+      if (current !== roleRef.current) {
+        void recheck();
+        // This list was fetched for the wrong view; the access change loads the right one.
+        if ((current !== "team") !== asAdmin) return;
+      }
       loadsRef.current.shown = load;
       commit(data);
       setError(null);

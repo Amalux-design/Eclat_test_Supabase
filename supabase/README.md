@@ -98,6 +98,9 @@ npm run dev
 On Vercel, add the same two variables under **Settings → Environment
 Variables**, then redeploy.
 
+On newer projects use the **Publishable** key (`sb_publishable_...`) wherever
+this guide says anon key. Never use a Secret key (`sb_secret_...`).
+
 The anon key is meant to be public: the database's row-level security
 decides what each signed-in person can do. **Never** put the `service_role`
 key in the app, `.env`, Vercel or chat.

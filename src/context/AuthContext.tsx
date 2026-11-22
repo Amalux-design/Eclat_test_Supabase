@@ -1,9 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { api } from "../api/client";
-import { clearAllCaches } from "../utils/localCache";
+import { clearAllCaches, readLastAccess, writeLastAccess } from "../utils/localCache";
+import type { LastAccess } from "../utils/localCache";
 import type { Role } from "../types";
 
 // Everyone signs in with their email and a password. What they can see
@@ -36,7 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [name, setName] = useState("");
 
+  const lastRef = useRef<LastAccess | null>(null);
+  const checksRef = useRef(0);
+
   const resolve = useCallback(async (s: Session | null) => {
+    // Numbered checks: a slow, older answer never replaces a newer one.
+    const check = ++checksRef.current;
     setSession(s);
     const email = s?.user.email;
     if (!email) {
@@ -46,12 +52,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const m = await api.myMembership(email);
+      if (check !== checksRef.current) return;
+      lastRef.current = m && { userId: s.user.id, role: m.role, name: m.name };
+      writeLastAccess(lastRef.current);
       setRole(m?.role ?? null);
       setName(m?.name ?? "");
       setStatus(m ? "ready" : "no-access");
     } catch {
-      // Offline at launch: keep whatever role we had so cached bookings show.
-      setStatus((prev) => (prev === "loading" ? "ready" : prev));
+      if (check !== checksRef.current) return;
+      // Couldn't check: show this person's last confirmed role (else the team view)
+      // and let the next refresh correct it. The database still decides every request.
+      const last = lastRef.current ?? readLastAccess();
+      const known = last?.userId === s.user.id ? last : null;
+      setRole(known?.role ?? null);
+      setName(known?.name ?? "");
+      setStatus((prev) => (prev === "loading" || prev === "signed-out" ? "ready" : prev));
     }
   }, []);
 
@@ -103,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     // Shared devices: leave no schedule or client data behind.
     clearAllCaches();
+    lastRef.current = null;
+    checksRef.current++; // a check still running must not save the role again
     // "local" clears this device's login without needing the server to accept
     // the old token. A long-open laptop tab with an expired session otherwise
     // fails the server call, keeps the login, and nothing seems to happen.

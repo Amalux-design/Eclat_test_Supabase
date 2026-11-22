@@ -48,7 +48,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
     }
     setBusy(true);
     try {
-      await api.saveMember({ ...draft, active: true });
+      await api.addMember(draft);
       notify(`Added. Ask ${draft.name || "them"} to open the app, tap "First time? Create password" and use ${draft.email.trim().toLowerCase()}.`);
       setDraft({ email: "", name: "", role: "team" });
       setAdding(false);
@@ -73,11 +73,12 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
     )
       return;
     try {
-      await api.saveMember({ ...m, active: !m.active });
+      await api.updateMember(m, { active: !m.active });
       notify(removing ? "Access removed." : "Access restored.");
       await load();
     } catch (err) {
       notify(err instanceof Error ? err.message : "Couldn't update access.", "error");
+      await load();
     }
   }
 
@@ -102,10 +103,11 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
 
   async function changeRole(m: Member, next: Role) {
     try {
-      await api.saveMember({ ...m, role: next });
+      await api.updateMember(m, { role: next });
       await load();
     } catch (err) {
       notify(err instanceof Error ? err.message : "Couldn't change the role.", "error");
+      await load();
     }
   }
 

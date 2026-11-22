@@ -7,14 +7,16 @@ Status as of 2026-11-22. "Verified" = checked in code/state; "Open" = needs a de
 2. ~~Run `supabase/hardening.sql`~~ — installed 2026-10-20 (fixed `session_user` version confirmed). Owner-tested: outsider refused, members sign in, instant removal works.
 3. ~~Members realtime publication~~ — run 2026-10-20.
 4. ~~Typo owner row~~ — deleted 2026-10-20; confirmed absent 2026-11-22.
-5. **After the 2026-11-22 fixes are deployed:** reopen the app on every device; re-run `supabase/backup.sql` (keeps the secret); paste the new `scripts/backup-apps-script.gs` with the same key and secret and run `backupNow`; delete TEST / RETEST bookings.
+5. **Post-deploy (2026-11-22):** devices reopened, backup SQL re-run, Sheets backup set up for the first time (19 of 19 rows, daily trigger on). TEST / RETEST bookings stay for now (testing phase, developer decision 2026-11-22).
 
 ## Before handover (Open)
+- **Not production-ready yet.** The 2026-11-22 audit's remaining fixes are being done in small steps; the list is kept privately until they land.
+- The "Forgot password" dashboard steps in `supabase/README.md` don't work (there is no set-password there); a tested procedure is to be written.
 - The fixed setup SQL has run on throwaway Postgres only (Supabase parts imitated). Run it on the real empty project: unedited first (must stop), then with the owner's email.
 - A believable owner-email typo still passes the check: read it letter by letter and create that password straight away.
-- The paged Sheets backup is untested against real Google + Supabase; a restore has never been tested.
+- Sheets backup works on real Google + Supabase (19 rows, 2026-11-22). Still untested there: over 1,000 rows, the first nightly run, and a restore.
 - Full audit, real-phone walk-through and a handover guide are still to do.
-- Vercel plan to decide (Hobby is for non-commercial use).
+- Vercel plan to decide (Hobby is non-commercial, and its private repos only deploy the account owner's commits).
 
 ## Risks (Open)
 - Backup Sheet: text starting with `=` or `+` is treated as a formula.
@@ -32,6 +34,12 @@ Status as of 2026-11-22. "Verified" = checked in code/state; "Open" = needs a de
 - Laptop zoom math (`--z`) must be respected by any new vh/vw sizing or coordinate math.
 
 ## Resolved recently (for regression checks)
+Audit fixes 2026-11-22, steps 1-7 (each tested by the developer):
+- Team-management guard and owner protection tightened.
+- New-style Supabase keys and explicit table grants for new projects.
+- An old Team screen can't undo a change made elsewhere.
+- A failed access check or unrenewable login no longer changes what the app shows or deletes.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.
@@ -39,7 +47,7 @@ Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer 
 4. A save conflict lost the edit → form stays open; second save merges.
 5. Retrying a new booking duplicated it → same id on retry.
 6. A stale form overwrote a newer payment → warns, saves changed fields only.
-7. Only 1,000 bookings loaded or backed up → paged (app half retested; Sheet half pending, see owner action 5).
+7. Only 1,000 bookings loaded or backed up → paged (app half retested; Sheet works, not yet tried over 1,000 rows).
 8. A slow refresh restored old data → only the newest refresh wins.
 9. A failed delete destroyed photos → row first, files after.
 

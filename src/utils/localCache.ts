@@ -1,4 +1,4 @@
-import type { WorkLog } from "../types";
+import type { Role, WorkLog } from "../types";
 
 // Last known logs, painted instantly on launch while a fresh copy loads.
 // Kept per role so a full admin snapshot is never shown in view-only mode.
@@ -29,11 +29,38 @@ export function writeLogsCache(admin: boolean, logs: WorkLog[], version: string)
   }
 }
 
+const ACCESS_KEY = "eclat:last-access:v1";
+
+/** The last access the database confirmed. Only for display when the check can't be reached. */
+export interface LastAccess {
+  userId: string;
+  role: Role;
+  name: string;
+}
+
+export function readLastAccess(): LastAccess | null {
+  try {
+    return JSON.parse(localStorage.getItem(ACCESS_KEY) ?? "null") as LastAccess | null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeLastAccess(access: LastAccess | null): void {
+  try {
+    if (access) localStorage.setItem(ACCESS_KEY, JSON.stringify(access));
+    else localStorage.removeItem(ACCESS_KEY);
+  } catch {
+    // storage unavailable: remembered for this session only
+  }
+}
+
 /** Sign-out: remove every cached booking list (admin and team) from this device. */
 export function clearAllCaches(): void {
   try {
     localStorage.removeItem(cacheKey(true));
     localStorage.removeItem(cacheKey(false));
+    localStorage.removeItem(ACCESS_KEY);
   } catch {
     // nothing to clear
   }

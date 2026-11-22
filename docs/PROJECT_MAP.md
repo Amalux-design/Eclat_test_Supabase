@@ -11,8 +11,8 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 ## Key files
 | Area | Files |
 |---|---|
-| Supabase client | `src/lib/supabase.ts` (cleans pasted env values, validates the anon key) |
-| Auth & roles | `src/context/AuthContext.tsx` (status loading/signed-out/no-access/ready; signIn, createAccount, changePassword, signOut, recheck; isAdmin/isOwner) |
+| Supabase client | `src/lib/supabase.ts` (cleans pasted env values, accepts publishable or legacy anon keys, refuses secret keys and signed-out data requests) |
+| Auth & roles | `src/context/AuthContext.tsx` (status loading/signed-out/no-access/ready; signIn, createAccount, changePassword, signOut, recheck; isAdmin/isOwner; numbered checks, last confirmed role as fallback) |
 | Data | `src/context/LogsContext.tsx` (fetch, realtime, add/edit/remove/markPaid/recordPayment, conflict handling via `utils/editMerge.ts`, numbered refreshes, `saving` count → logo shimmer), `src/api/client.ts` (every Supabase call; `ApiError` codes AUTH/CONFLICT/NOT_FOUND/VALIDATION/NETWORK/ERROR) |
 | Cache | `src/utils/localCache.ts` — last booking list per role in localStorage for instant first paint; cleared on sign-out |
 | Pages | `src/pages/CalendarPage.tsx`, `LogsPage.tsx` (sticky title + chips block, search, sticky date headings), `PaymentsPage.tsx` (year filter, totals card, Month/Client ledger, payment sheet) |
@@ -31,13 +31,13 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 - `booking_private` — phones, qty/price/amount, paid amount, payment status, referral, "Notes for me". Admin/owner only.
 - `booking_photos` — storage paths + `work_date` (kept in sync with the booking date by trigger).
 - Storage bucket `reference-photos` (private, signed URLs, 5 MB, images only).
-- Helper functions: `app_role`, `is_member`, `is_admin`, `is_owner`, `is_invited`; RPC `save_booking(b, p, base)`; `backup_export(secret)`.
+- Helper functions: `app_role`, `is_member`, `is_admin`, `is_owner`, `is_invited`; trigger `protect_owner`; RPC `save_booking(b, p, base)`; `backup_export(secret)`.
 
 ## Workflows
 - **Sign-in:** email + password; "Confirm email" OFF; app sends no email. First time: `is_invited` check → sign-up. DB trigger (`hardening.sql`) also refuses uninvited sign-ups and API email changes.
 - **Save:** online only. `save_booking` (security invoker) writes `bookings` + `booking_private` atomically; with `base` it checks `updated_at` → `CONFLICT` if another device changed it. Form stays open on failure. Edits send changed fields, merged after a warning; a new booking keeps its id across retries.
 - **Load:** pages of 1,000 by id, then sorted by date; older replies are ignored.
-- **Delete:** row first, then photo files (best effort).
+- **Delete:** row first; files only once the row is confirmed gone (best effort).
 - **Live updates:** realtime on bookings, booking_photos, booking_private (admins), members (instant revoke/role change); refetch on app foreground; 1-minute heartbeat.
 - **Photos:** compressed on device (1600 px ≈300 KB + 360 px thumb); admin devices delete photos 2 months after work date, once a day (`eclat:photo-sweep` key).
 - **Documents:** jsPDF loaded on demand; iPhone uses the share sheet, others download.

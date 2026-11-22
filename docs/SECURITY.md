@@ -35,7 +35,7 @@ Supabase live updates don't apply row-level security to DELETE events, so hard-d
 ## Ongoing
 - Remove access the day someone leaves (Account → Team access → Remove).
 - If the backup secret leaks: `update public.backup_secret set secret = 'NEW-LONG-RANDOM';` and update the Apps Script.
-- If the anon key is ever rotated in Supabase: update both Vercel env vars → Redeploy.
+- If the anon key is ever rotated in Supabase: update both Vercel env vars → Redeploy, and update `ANON_KEY` in the backup Apps Script.
 - Never paste the service_role key into the app, Vercel, docs, chat or memory.
 
 ## Useful checks (SQL Editor)

@@ -41,10 +41,10 @@ create or replace function public.is_member() returns boolean
 language sql stable as $$ select public.app_role() is not null $$;
 
 create or replace function public.is_admin() returns boolean
-language sql stable as $$ select public.app_role() in ('owner', 'admin') $$;
+language sql stable as $$ select coalesce(public.app_role() in ('owner', 'admin'), false) $$;
 
 create or replace function public.is_owner() returns boolean
-language sql stable as $$ select public.app_role() = 'owner' $$;
+language sql stable as $$ select coalesce(public.app_role() = 'owner', false) $$;
 
 -- Lets the sign-in screen check, before someone creates a password, that
 -- Harsha has added their email. Only answers yes/no for that exact email.
@@ -148,6 +148,26 @@ end $$;
 drop trigger if exists bookings_photo_date on public.bookings;
 create trigger bookings_photo_date after update on public.bookings
   for each row execute function public.sync_photo_work_date();
+
+-- ---------------------------------------------------------------------------
+-- The owner row cannot be changed or deleted from the app or its API, so the
+-- owner cannot lock themselves out. The SQL Editor can still change it.
+-- ---------------------------------------------------------------------------
+create or replace function public.protect_owner()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if old.role = 'owner' and current_user in ('anon', 'authenticated') then
+    raise exception 'VALIDATION: That email is the owner. The owner cannot be changed here.';
+  end if;
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists members_protect_owner on public.members;
+create trigger members_protect_owner before update or delete on public.members
+  for each row execute function public.protect_owner();
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security: the database enforces who sees what.
@@ -296,6 +316,17 @@ begin
 end $$;
 
 grant execute on function public.save_booking(jsonb, jsonb, timestamptz) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- What signed-in people may ask for through the API. New Supabase projects no
+-- longer grant this by themselves. The policies above still decide which rows
+-- each person gets. Signed-out visitors get no table. Any new table needs its
+-- own grant here.
+-- ---------------------------------------------------------------------------
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.members to authenticated;
+grant select, insert, update, delete on public.bookings, public.booking_private, public.booking_photos to authenticated;
+grant execute on function public.app_role(), public.is_member(), public.is_admin(), public.is_owner() to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Owner. Replace OWNER-EMAIL-HERE with the owner's own email before running.
