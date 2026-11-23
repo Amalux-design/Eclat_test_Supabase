@@ -40,3 +40,5 @@
 | The standard price menu stays in the app bundle | Developer decision 2026-11-23: only custom prices and each booking's money are private. |
 | Calendar's day list reuses the Bookings tab's white groups; Mark as done is each group's last row | It can only mean that booking, and adds no new visual pattern. |
 | Earnings dashboard: one column under 700px, paired columns in a wider dialog from 700px | Phones must never scroll sideways; tablets and laptops shouldn't get a stretched phone layout. |
+| A total typed before any service is kept when services are added | It was agreed with the client; the difference shows as extra or discount until the amount is edited. |
+| `bookings.work` has a CHECK refusing " @price" | Prices can never again be saved where the team can read them. |

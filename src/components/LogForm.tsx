@@ -112,22 +112,42 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     [works]
   );
   const extraNum = Number(extra.replace(/[^\d.-]/g, "")) || 0;
-  const amount = String(Math.max(0, menuTotal + extraNum));
+  // With no priced service the box is the whole amount, so it can't be a discount.
+  const amount = String(Math.max(0, menuTotal + (menuTotal === 0 ? Math.abs(extraNum) : extraNum)));
+  const [keptTotal, setKeptTotal] = useState<number | null>(null);
+
+  /** Change the services, keeping a total that was typed by hand. */
+  function applyWorks(next: typeof works) {
+    const before = works.reduce((sum, w) => sum + (w.price ?? 0) * w.qty, 0);
+    const after = next.reduce((sum, w) => sum + (w.price ?? 0) * w.qty, 0);
+    setWorks(next);
+    // An agreed amount typed before any service stays the total through every service
+    // change, until the amount is edited by hand; the difference shows as extra or discount.
+    const target = keptTotal ?? (before === 0 && after > 0 && extraNum > 0 ? extraNum : null);
+    if (target !== null) {
+      setExtra(target - after ? String(target - after) : "");
+      setKeptTotal(target);
+    } else if (after === 0 && extraNum < 0) {
+      // A discount means nothing without a service: clear it rather than hide it.
+      setExtra("");
+    }
+  }
 
   function setWorkQty(name: string, qty: number) {
-    setWorks((prev) => {
-      if (qty <= 0) return prev.filter((w) => w.name !== name);
-      return prev.some((w) => w.name === name)
-        ? prev.map((w) => (w.name === name ? { ...w, qty } : w))
-        : [...prev, { name, qty, price: servicePrice(name) ?? undefined }];
-    });
+    applyWorks(
+      qty <= 0
+        ? works.filter((w) => w.name !== name)
+        : works.some((w) => w.name === name)
+          ? works.map((w) => (w.name === name ? { ...w, qty } : w))
+          : [...works, { name, qty, price: servicePrice(name) ?? undefined }]
+    );
   }
 
   function addCustomWork() {
     const w = customWork.replace(/,/g, "").trim();
     if (!w) return;
     const price = Number(customRate.replace(/\D/g, "")) || (servicePrice(w) ?? undefined);
-    setWorks((prev) => (prev.some((x) => x.name === w) ? prev : [...prev, { name: w, qty: 1, price }]));
+    if (!works.some((x) => x.name === w)) applyWorks([...works, { name: w, qty: 1, price }]);
     setCustomRate("");
     setCustomWork("");
     setUnaddedWarned(false);
@@ -372,6 +392,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                     onChange={(e) => {
                       const digits = e.target.value.replace(/\D/g, "");
                       setExtra((v) => (v.startsWith("-") ? "-" : "") + digits);
+                      setKeptTotal(null);
                     }}
                     placeholder="0"
                     aria-describedby="f-extra-hint"
@@ -384,7 +405,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
               </div>
             </div>
             <p id="f-extra-hint" className="field-hint">
-              {menuTotal > 0
+              {keptTotal !== null && Number(amount) === keptTotal
+                ? `Total kept at ${formatCurrency(keptTotal)}, the amount you typed. Change it above if the price is different.`
+                : menuTotal > 0
                 ? "Tap + / − to add an extra (travel, extensions) or take off a discount."
                 : "Type the full amount for this booking."}
             </p>

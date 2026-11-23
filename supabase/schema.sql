@@ -81,6 +81,11 @@ create table if not exists public.bookings (
 
 create index if not exists bookings_date_idx on public.bookings (date desc);
 
+-- The team can read bookings.work, so it never holds prices (they live in booking_private.rates).
+alter table public.bookings drop constraint if exists bookings_work_has_no_prices;
+alter table public.bookings add constraint bookings_work_has_no_prices
+  check (work !~ '\s@[0-9]+\s*(,|$)');
+
 -- ---------------------------------------------------------------------------
 -- Booking private: contacts, money and private notes. Admins/owner only.
 -- A separate table so the database itself withholds these from the team.

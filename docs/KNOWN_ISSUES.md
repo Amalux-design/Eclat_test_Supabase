@@ -52,6 +52,8 @@ UI fixes 2026-11-23 (checked with invented data at phone, tablet and laptop widt
 - Earnings dashboard was wider than every phone screen when a name was long; now responsive.
 - "Paid" was unreadable on the dark Today panel.
 
+Audit fixes 2026-11-23, steps 11c-12: old prices moved to the private row and locked (verified on the test database); a typed total survives adding services; removing a discounted service no longer saves Rs. 0.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.
