@@ -42,3 +42,4 @@
 | Earnings dashboard: one column under 700px, paired columns in a wider dialog from 700px | Phones must never scroll sideways; tablets and laptops shouldn't get a stretched phone layout. |
 | A total typed before any service is kept when services are added | It was agreed with the client; the difference shows as extra or discount until the amount is edited. |
 | `bookings.work` has a CHECK refusing " @price" | Prices can never again be saved where the team can read them. |
+| No proposal without a total; an invoice with no total says "To be confirmed" | A Rs. 0 proposal or "Paid in full" with nothing priced misleads the client. |

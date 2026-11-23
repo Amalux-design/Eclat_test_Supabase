@@ -4,6 +4,7 @@ import { FileText, MoreHorizontal, ScrollText, Trash2 } from "lucide-react";
 import type { WorkLog } from "../types";
 import { saveInvoice, saveQuote } from "../utils/invoice";
 import { useLogs } from "../context/LogsContext";
+import { useNotice } from "./Notice";
 
 /**
  * "More ▾" on a booking card: invoice, quotation, delete. The menu is portalled
@@ -12,6 +13,14 @@ import { useLogs } from "../context/LogsContext";
 export function MoreMenu({ log, onDelete }: { log: WorkLog; onDelete?: () => void }) {
   const [open, setOpen] = useState(false);
   const { logs } = useLogs();
+  const notify = useNotice();
+  // A PDF that can't be made (offline, or the app is older than the site) must say so.
+  const make = (save: (l: WorkLog) => Promise<void>) =>
+    void save(latest()).catch(() => notify("Couldn't make the PDF. Check your connection, reload the app and try again.", "error"));
+  const quote = () => {
+    if (latest().amount <= 0) return notify("Set the booking's total first. A proposal needs a price.", "error");
+    make(saveQuote);
+  };
   // Always build the PDF from the latest saved version of this booking.
   const latest = () => logs.find((l) => l.id === log.id) ?? log;
   const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
@@ -78,10 +87,10 @@ export function MoreMenu({ log, onDelete }: { log: WorkLog; onDelete?: () => voi
               style={{ top: pos.top, bottom: pos.bottom, right: Math.max(12, pos.right) }}
               onClick={(e) => e.stopPropagation()}
             >
-              <button role="menuitem" className="more-item" onClick={run(() => void saveInvoice(latest()))}>
+              <button role="menuitem" className="more-item" onClick={run(() => make(saveInvoice))}>
                 <FileText size={18} strokeWidth={1.7} /> Download invoice
               </button>
-              <button role="menuitem" className="more-item" onClick={run(() => void saveQuote(latest()))}>
+              <button role="menuitem" className="more-item" onClick={run(quote)}>
                 <ScrollText size={18} strokeWidth={1.7} /> Download quotation
               </button>
               {onDelete && (

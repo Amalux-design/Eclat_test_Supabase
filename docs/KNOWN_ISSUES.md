@@ -54,6 +54,8 @@ UI fixes 2026-11-23 (checked with invented data at phone, tablet and laptop widt
 
 Audit fixes 2026-11-23, steps 11c-12: old prices moved to the private row and locked (verified on the test database); a typed total survives adding services; removing a discounted service no longer saves Rs. 0.
 
+Audit fix 2026-11-23, step 13: invoices with no total no longer say "Paid in full"; no Rs. 0 proposals; a failed PDF says so.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.
