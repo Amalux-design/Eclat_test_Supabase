@@ -43,3 +43,5 @@
 | A total typed before any service is kept when services are added | It was agreed with the client; the difference shows as extra or discount until the amount is edited. |
 | `bookings.work` has a CHECK refusing " @price" | Prices can never again be saved where the team can read them. |
 | No proposal without a total; an invoice with no total says "To be confirmed" | A Rs. 0 proposal or "Paid in full" with nothing priced misleads the client. |
+| "Received so far" is the only record of money in the form | Paid fills it once and Payment due undoes that tap; the switch shows what will be saved and never erases real money. |
+| Money boxes read whole rupees ("₹15,000.00" = 15000, "1.5L" = 150000) | Pasted figures were multiplied by 100. |

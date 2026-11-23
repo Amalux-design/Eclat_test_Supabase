@@ -56,6 +56,8 @@ Audit fixes 2026-11-23, steps 11c-12: old prices moved to the private row and lo
 
 Audit fix 2026-11-23, step 13: invoices with no total no longer say "Paid in full"; no Rs. 0 proposals; a failed PDF says so.
 
+Audit fix 2026-11-24, step 14: pasted and decimal amounts read correctly; the Paid / Payment due switch always matches what is saved.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.

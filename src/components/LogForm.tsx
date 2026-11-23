@@ -28,6 +28,15 @@ interface LogFormProps {
 
 const KNOWN_SERVICES = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 
+/** Whole rupees from what was typed or pasted: "₹15,000.00" → 15000, "1.5L" → 150000. */
+function rupees(text: string): number {
+  const t = text.replace(/[\s,₹]/g, "").toLowerCase();
+  const lakh = /^(\d+(?:\.\d+)?)(l|lac|lakh|lakhs)$/.exec(t);
+  if (lakh) return Math.round(Number(lakh[1]) * 100000);
+  const n = /^-?(\d+)(?:\.\d*)?$/.exec(t);
+  return n ? Number(n[1]) : Number(t.replace(/\D/g, "")) || 0;
+}
+
 export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, onClose }: LogFormProps) {
   const [date, setDate] = useState(initial?.date ?? defaultDate ?? todayISO());
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
@@ -62,8 +71,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [privateNotes, setPrivateNotes] = useState(initial?.privateNotes ?? "");
   const initialReceived = initial ? receivedOf(initial) : 0;
   const [paidSoFar, setPaidSoFar] = useState(initialReceived ? String(initialReceived) : "");
-  // Only a tap on "Paid" in this form may turn a higher total into money received.
-  const [paidTapped, setPaidTapped] = useState(false);
+  // What "Received so far" held before "Paid" was tapped, so "Payment due" can undo exactly that.
+  const [beforePaid, setBeforePaid] = useState<string | null>(null);
+  const [dueOpen, setDueOpen] = useState(false);
   const [draftId] = useState(generateId);
   const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +156,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   function addCustomWork() {
     const w = customWork.replace(/,/g, "").trim();
     if (!w) return;
-    const price = Number(customRate.replace(/\D/g, "")) || (servicePrice(w) ?? undefined);
+    const price = rupees(customRate) || (servicePrice(w) ?? undefined);
     if (!works.some((x) => x.name === w)) applyWorks([...works, { name: w, qty: 1, price }]);
     setCustomRate("");
     setCustomWork("");
@@ -156,16 +166,16 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   // New bookings start as Booked; "Done" is set later (here or "Mark as done").
   const effectiveStatus: WorkStatus = forceStatus ?? statusOverride ?? "RESERVED";
 
-  // A paid booking whose total went up has a balance due again.
+  // Money received is only what "Received so far" says. Paid / Payment due always shows
+  // what will be saved: a raised total is due again; nothing is received without a tap or a number.
+  const receivedNow = rupees(paidSoFar);
   const shownPayment: PaymentStatus =
-    paymentStatus === "PAID" && !paidTapped && Number(amount) > initialReceived ? "PENDING" : paymentStatus;
-  const typedReceived = Math.max(0, Number(paidSoFar) || 0);
-  const receivedNow = paidTapped ? Math.max(typedReceived, Number(amount)) : typedReceived;
+    Number(amount) > 0 ? (receivedNow >= Number(amount) ? "PAID" : "PENDING") : paymentStatus;
   const refund = Number(amount) > 0 ? receivedNow - Number(amount) : 0;
 
   function buildInput(): WorkLogInput {
     const amountNum = Math.max(0, Number(amount) || 0);
-    const fullyPaid = amountNum > 0 ? receivedNow >= amountNum : shownPayment === "PAID";
+    const fullyPaid = shownPayment === "PAID";
     const qty = initial?.qty && initial.qty > 1 ? initial.qty : 1;
     return {
       date,
@@ -329,7 +339,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 className="field-input"
                 inputMode="numeric"
                 value={customRate}
-                onChange={(e) => setCustomRate(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setCustomRate(e.target.value.trim() ? String(rupees(e.target.value) || "") : "")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -390,8 +400,11 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                     inputMode="numeric"
                     value={extra.replace("-", "")}
                     onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      setExtra((v) => (v.startsWith("-") ? "-" : "") + digits);
+                      const typed = e.target.value;
+                      const value = typed.trim() ? String(rupees(typed)) : "";
+                      // A pasted "-2000" is a discount, when there is a service to take it off.
+                      const minus = menuTotal > 0 && (typed.trim().startsWith("-") || extra.startsWith("-"));
+                      setExtra(value === "0" ? "" : (minus && value ? "-" : "") + value);
                       setKeptTotal(null);
                     }}
                     placeholder="0"
@@ -417,10 +430,16 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 type="button"
                 className={`segmented-btn ${shownPayment === "PENDING" ? "active" : ""}`}
                 onClick={() => {
-                  // Undoing "Paid": drop the automatic full amount, keep a real part payment or overpayment.
-                  if (shownPayment === "PAID" && typedReceived === Number(amount)) setPaidSoFar("");
-                  setPaidTapped(false);
                   setPaymentStatus("PENDING");
+                  if (beforePaid !== null) {
+                    // Undo this form's "Paid" tap exactly.
+                    setPaidSoFar(beforePaid);
+                    setBeforePaid(null);
+                  } else if (shownPayment === "PAID" && Number(amount) > 0) {
+                    // Saved as paid: never erase real money; show the box so it can be corrected.
+                    setDueOpen(true);
+                    window.setTimeout(() => (document.getElementById("f-paid") as HTMLInputElement | null)?.select(), 50);
+                  }
                 }}
               >
                 Payment due
@@ -429,8 +448,13 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 type="button"
                 className={`segmented-btn ${shownPayment === "PAID" ? "active" : ""}`}
                 onClick={() => {
-                  setPaidTapped(true);
                   setPaymentStatus("PAID");
+                  setDueOpen(false);
+                  // Paid in full now: received becomes the total, once (an overpayment stays as it is).
+                  if (Number(amount) > receivedNow) {
+                    if (beforePaid === null) setBeforePaid(paidSoFar);
+                    setPaidSoFar(String(amount));
+                  }
                 }}
               >
                 Paid
@@ -442,19 +466,22 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 {formatCurrency(receivedNow)} received, {formatCurrency(refund)} to refund.
               </p>
             )}
-            <div className={`reveal-field ${shownPayment === "PENDING" ? "open" : ""}`}>
+            <div className={`reveal-field ${shownPayment === "PENDING" || dueOpen ? "open" : ""}`}>
               <div className="reveal-field-inner">
                 <label className="field-label" htmlFor="f-paid">Received so far</label>
                 <input
                   id="f-paid"
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min="0"
                   className="field-input"
                   value={paidSoFar}
-                  onChange={(e) => setPaidSoFar(e.target.value)}
+                  onChange={(e) => {
+                    setPaidSoFar(e.target.value);
+                    setBeforePaid(null);
+                  }}
+                  onBlur={() => paidSoFar && setPaidSoFar(rupees(paidSoFar) ? String(rupees(paidSoFar)) : "")}
                   placeholder="Advance or part payment, if any"
-                  tabIndex={shownPayment === "PENDING" ? 0 : -1}
+                  tabIndex={shownPayment === "PENDING" || dueOpen ? 0 : -1}
                 />
               </div>
             </div>
