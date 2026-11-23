@@ -248,38 +248,68 @@ export function LogsProvider({ children }: { children: ReactNode }) {
 
   // Per open form (by its id, never by booking: reopening must start clean): the newest
   // version it has been warned about or saved itself, and the fields it has written.
-  const editsRef = useRef(new Map<string, { seen: string; written: (keyof WorkLogInput)[] }>());
+  // `attempt` is the whole booking this form last sent, recorded before sending, so a lost
+  // reply can still be recognised as this form's own write (and undone if asked).
+  const editsRef = useRef(
+    new Map<string, { seen: string; written: (keyof WorkLogInput)[]; attempt?: WorkLog }>()
+  );
+
+  /** The latest saved booking for a change: always with contacts and money, which only
+   *  admins can read. Never save from a copy without them (an out-of-date role). */
+  const latestToChange = useCallback(async (id: string) => {
+    const latest = await api.fetchBooking(id, true);
+    if (latest && !latest.hasPrivate) {
+      const role = await api.myRole();
+      if (role !== "owner" && role !== "admin") {
+        void recheck();
+        throw new ApiError("Your access has changed, so this wasn't saved. The app will refresh.", "AUTH");
+      }
+    }
+    return latest;
+  }, [recheck]);
 
   const editLog = useCallback(
     async (id: string, patch: Partial<WorkLogInput>, photos?: PhotoChanges, form?: EditForm) => {
       await run(async () => {
         const from = form?.opened ?? logsRef.current.find((l) => l.id === id);
-        const latest = from && (await api.fetchBooking(id, adminRef.current));
+        const latest = from && (await latestToChange(id));
         if (!from || !latest) {
           throw new ApiError("This booking was deleted on another device. Copy anything you need, then close it.", "NOT_FOUND");
         }
         // Only a form can acknowledge a warning; a quick payment always starts from the latest total.
         const edit = form && editsRef.current.get(form.id);
-        // A field written by an earlier attempt and since put back is put back on the server too.
+        // The server still holds exactly what this form sent last time (its reply was lost):
+        // that is this form's own write, not another device's.
+        const ours = !!edit?.attempt && sameBooking(latest, edit.attempt);
+        // A field this form wrote before and has since put back is put back on the server too,
+        // but only while the server still holds this form's value (never undo someone else).
         const changes: Partial<WorkLogInput> = {};
-        for (const key of edit?.written ?? []) Object.assign(changes, { [key]: key === "paidAmount" ? receivedOf(from) : from[key] });
+        for (const key of edit?.written ?? []) {
+          if (key in patch) continue;
+          const mine = edit?.attempt && (key === "paidAmount" ? receivedOf(edit.attempt) : edit.attempt[key]);
+          const there = key === "paidAmount" ? receivedOf(latest) : latest[key];
+          if (ours || there === mine) Object.assign(changes, { [key]: key === "paidAmount" ? receivedOf(from) : from[key] });
+        }
         Object.assign(changes, patch);
 
         const next = mergeEdit(latest, changes);
         // Already holds exactly these values: a repeated tap after a lost reply.
         const landed = Object.keys(changes).length > 0 && sameBooking(latest, next);
-        if (!landed && latest.updatedAt !== from.updatedAt && latest.updatedAt !== edit?.seen) {
-          if (form) editsRef.current.set(form.id, { seen: latest.updatedAt, written: edit?.written ?? [] });
+        if (!landed && !ours && latest.updatedAt !== from.updatedAt && latest.updatedAt !== edit?.seen) {
+          if (form) editsRef.current.set(form.id, { ...edit, seen: latest.updatedAt, written: edit?.written ?? [] });
           throw new ApiError(changeWarning(from, latest, changes), "CONFLICT");
         }
+        const written = [...new Set([...(edit?.written ?? []), ...(Object.keys(changes) as (keyof WorkLogInput)[])])];
+        // Recorded before sending, so a lost reply still counts as this form's write.
+        if (form) editsRef.current.set(form.id, { seen: edit?.seen ?? from.updatedAt, written, attempt: next });
         const savedAt = landed ? latest.updatedAt : await api.saveBooking(next, latest.updatedAt);
-        if (form) editsRef.current.set(form.id, { seen: savedAt, written: Object.keys(changes) as (keyof WorkLogInput)[] });
+        if (form) editsRef.current.set(form.id, { seen: savedAt, written, attempt: next });
         showSaved(landed ? latest : { ...next, updatedAt: savedAt });
         await finishSave(id, next.date, photos);
         if (form) editsRef.current.delete(form.id);
       });
     },
-    [run, finishSave, showSaved]
+    [run, finishSave, showSaved, latestToChange]
   );
 
   const removeLog = useCallback(
@@ -298,7 +328,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   const recordPayment = useCallback(
     (seen: WorkLog, received: number) =>
       run(async () => {
-        const latest = await api.fetchBooking(seen.id, adminRef.current);
+        const latest = await latestToChange(seen.id);
         if (!latest) throw new ApiError("This booking was deleted on another device.", "NOT_FOUND");
         if (receivedOf(latest) !== receivedOf(seen) || latest.amount !== seen.amount) {
           showSaved(latest);
@@ -310,7 +340,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
         await refetch();
         return null;
       }),
-    [run, showSaved, refetch]
+    [run, showSaved, refetch, latestToChange]
   );
 
   const logsByDate = useMemo(() => {

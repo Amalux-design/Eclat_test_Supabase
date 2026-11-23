@@ -158,14 +158,18 @@ export const api = {
     return all.map(fromRow).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   },
 
-  async fetchBooking(id: string, admin: boolean): Promise<WorkLog | null> {
+  async fetchBooking(id: string, admin: boolean): Promise<(WorkLog & { hasPrivate: boolean }) | null> {
     const { data, error } = await supabase
       .from("bookings")
       .select(admin ? ADMIN_SELECT : PUBLIC_SELECT)
       .eq("id", id)
       .maybeSingle();
     if (error) throw toApiError(error, "Couldn't load the booking.");
-    return data ? fromRow(data as unknown as BookingRow) : null;
+    if (!data) return null;
+    const row = data as unknown as BookingRow;
+    const priv = Array.isArray(row.booking_private) ? row.booking_private[0] : row.booking_private;
+    // Edits must know whether contacts and money really came back (they don't for the team).
+    return { ...fromRow(row), hasPrivate: admin && !!priv };
   },
 
   /**

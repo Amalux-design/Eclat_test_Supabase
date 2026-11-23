@@ -45,3 +45,5 @@
 | No proposal without a total; an invoice with no total says "To be confirmed" | A Rs. 0 proposal or "Paid in full" with nothing priced misleads the client. |
 | "Received so far" is the only record of money in the form | Paid fills it once and Payment due undoes that tap; the switch shows what will be saved and never erases real money. |
 | Money boxes read whole rupees ("₹15,000.00" = 15000, "1.5L" = 150000) | Pasted figures were multiplied by 100. |
+| An edit records what it sends before sending | After a lost reply the server's copy is recognised as this form's own write, so it can be undone without a false warning, and never undoes someone else. |
+| Edits and payments always re-read contacts and money; they stop if those are missing for a non-admin | An out-of-date role must not save blanks over a booking. |
