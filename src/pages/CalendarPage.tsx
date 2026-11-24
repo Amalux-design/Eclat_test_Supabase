@@ -258,7 +258,7 @@ export function CalendarPage() {
                         aria-label={`Mark as done: ${log.clientName || "unnamed client"}`}
                         onClick={() => setConverting(log)}
                       >
-                        <Check size={16} strokeWidth={2} aria-hidden="true" /> Mark as done
+                        <Check size={18} strokeWidth={2.2} aria-hidden="true" /> Mark as Done
                       </button>
                     </div>
                   )}

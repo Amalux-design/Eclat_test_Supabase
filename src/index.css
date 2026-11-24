@@ -4600,7 +4600,7 @@ button,
 }
 .booking-wine .booking-time { border-right-color: rgba(251, 243, 234, 0.16); }
 .booking-client { font-size: 18px; }
-.booking-amount { font-weight: 700; }
+.booking-amount { font-weight: 600; }
 .booking-location { display: inline-flex; align-items: center; gap: 6px; }
 .booking-location svg:first-child { color: var(--oxblood); }
 .booking-wine .booking-location svg:first-child { color: var(--gilt-soft); }
@@ -4622,7 +4622,7 @@ button,
 .booking-ready { font-size: 14px; color: var(--ink-2); }
 .booking-head { align-items: baseline; }
 .booking-client { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
-.booking-amount { font-size: 20px; font-weight: 700; color: var(--oxblood); }
+.booking-amount { font-size: 20px; font-weight: 600; color: var(--oxblood); }
 .booking-services { font-size: 16px; color: var(--ink-2); margin-top: 4px; }
 .booking-meta { margin-top: 12px; gap: 14px; }
 .booking-location { font-size: 16px; font-weight: 600; gap: 8px; }
@@ -4834,7 +4834,7 @@ button,
 .bs-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .bs-name { margin: 0; font-family: var(--font-title); font-size: 26px; font-weight: 600; color: var(--oxblood); line-height: 1.15; }
 .bs-when { margin: 4px 0 0; color: var(--ink-2); font-size: 15px; }
-.bs-amount { font-size: 22px; font-weight: 700; color: var(--oxblood); white-space: nowrap; }
+.bs-amount { font-size: 22px; font-weight: 600; color: var(--oxblood); white-space: nowrap; }
 .bs-pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .bs-actions { display: flex; gap: 8px; }
 .bs-actions .more-btn { width: 44px; height: 44px; flex: none; }
@@ -5218,7 +5218,7 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
   font-weight: 600;
   color: var(--oxblood);
 }
-.bs-total .bs-num { font-size: 20px; font-weight: 700; }
+.bs-total .bs-num { font-size: 20px; font-weight: 600; }
 
 /* Payment: thin gold bar, one line, one button */
 .booking-sheet .bs-pay { display: grid; gap: 10px; }
@@ -5443,12 +5443,7 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
   .dash-hero-total { font-size: 23px; }
   .dash-hero-row b { padding-left: 4px; }
 }
-@media (max-width: 359px) {
-  .dash-hero-top { flex-wrap: wrap; }
-  .dash-hero-figures { flex-basis: 100%; max-width: none; }
-  .dash-hero-stats div + div { padding-left: 8px; }
-  .dash-section > .dash-collect { grid-template-columns: minmax(0, 1fr); }
-}
+
 
 @media (min-width: 700px) {
   .modal-sheet:has(.dash) { max-width: min(1040px, calc(100vw / var(--z, 1) - 32px)); }
@@ -5513,3 +5508,118 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
 }
 .search-pill.open .search-pill-label { opacity: 0; }
 .search-pill:not(.open) .search-pill-icon { left: 5px; }
+
+/* ---------- booking card, per the 2026-11-24 reference ----------
+   Name small and muted, the amount large in wine beneath it, bigger badges,
+   a muted time column. Calendar: Mark as Done is a full-width wine button
+   inside the card, under a hairline. */
+.booking-compact .booking-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+.booking-compact .booking-client {
+  max-width: 100%;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink-2);
+  letter-spacing: 0;
+}
+.booking-compact .booking-amount {
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--oxblood);
+}
+.booking-compact .booking-mid { min-height: 0; margin-top: 6px; }
+.booking-compact .booking-foot { gap: 8px; margin-top: 12px; }
+.booking-compact .pill { height: 32px; padding: 0 14px; gap: 6px; font-size: 14px; font-weight: 600; border-radius: 999px; }
+.booking-compact .pill-reserved svg { display: none; }
+.booking-compact .pill-reserved { background: rgba(155, 58, 74, 0.1); color: var(--oxblood); }
+.booking-compact .booking-start { font-size: 17px; font-weight: 500; color: var(--ink-2); }
+.booking-wine .booking-client { color: rgba(251, 243, 234, 0.8); }
+.booking-wine .booking-amount { color: var(--on-dark); }
+.booking-wine .booking-start { color: rgba(251, 243, 234, 0.85); }
+.booking-wine.booking-compact .pill-reserved { background: rgba(255, 255, 255, 0.12); color: var(--on-dark); }
+
+.agenda-booking-foot { display: block; padding: 0 16px 16px; }
+.agenda-booking-foot::before { inset: 0 16px auto; }
+.agenda-booking-foot .booking-done {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: var(--oxblood);
+  color: var(--on-dark);
+  font-size: 16px;
+  font-weight: 600;
+}
+.agenda-booking-foot .booking-done:active { opacity: 1; transform: scale(0.98); }
+.agenda-booking-foot .booking-done:focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
+/* Badges side by side on phones, as in the reference. */
+.booking-compact { grid-template-columns: 74px minmax(0, 1fr); column-gap: 12px; padding-right: 30px; }
+.booking-compact .pill { height: 32px; padding: 0 11px; font-size: 13.5px; }
+.booking-compact .booking-chevron { right: 8px; }
+.agenda-booking-foot { padding: 0 16px 16px; }
+.booking-compact .booking-start { font-size: 16px; white-space: nowrap; }
+/* Badges a step quieter than the name and amount. */
+.booking-compact .pill { height: 26px; padding: 0 10px; gap: 5px; font-size: 12.5px; font-weight: 600; }
+.booking-compact .pill svg { width: 13px; height: 13px; }
+.booking-compact .pill-tick { width: 15px; height: 15px; }
+.booking-compact .pill-tick svg { width: 9px; height: 9px; }
+.booking-compact .booking-foot { gap: 6px; margin-top: 10px; }
+/* Card rhythm: three groups (who + amount / what + where / status), 10-12px apart,
+   tight lines inside each group. One step smaller type. */
+.booking-compact { padding-top: 16px; padding-bottom: 16px; }
+.booking-compact .booking-start { font-size: 15px; }
+.booking-compact .booking-client { font-size: 15.5px; line-height: 1.3; }
+.booking-compact .booking-amount { font-size: 24px; line-height: 1.2; margin-top: 1px; }
+.booking-compact .booking-mid { margin-top: 10px; }
+.booking-compact .booking-mid:empty { display: none; }
+.booking-compact .booking-summary,
+.booking-compact .booking-place { height: 21px; line-height: 21px; font-size: 14px; }
+.booking-compact .booking-place { margin-top: 2px; }
+.booking-compact .booking-foot { margin-top: 12px; }
+.booking-compact .booking-ready { margin-top: 4px; font-size: 13px; }
+.agenda-booking-foot .booking-done { min-height: 44px; margin-top: 12px; font-size: 15px; }
+/* Mark as Done: a slimmer bar, a step below the amount in weight. */
+.agenda-booking-foot { padding: 0 16px 12px; }
+.agenda-booking-foot .booking-done { min-height: 36px; margin-top: 10px; gap: 7px; font-size: 14px; }
+.agenda-booking-foot .booking-done svg { width: 15px; height: 15px; }
+
+/* ---------- one bold, clean figure style everywhere ----------
+   Money uses the app's own Jost, heavy, as on the booking card (was a system sans on Earnings). */
+.earnings-page { --font-fin: var(--font-ui); }
+:root { --font-fin: var(--font-ui); }
+.earnings-page .ledger.pinned .ledger-figure { font-weight: 600; letter-spacing: -0.015em; }
+.earnings-page .ledger.pinned .ledger-value,
+.earnings-page .ledger-value { font-weight: 600; }
+.dash-hero-total { font-weight: 600; letter-spacing: -0.015em; }
+.dash-hero-stats dd,
+.dash-collect-box b,
+.dash-hero-row b,
+.dash-ranked-head b,
+.dash-rows b,
+.bs-total .bs-num { font-weight: 600; }
+
+/* No bold anywhere: semi-bold (600) is the heaviest weight (2026-11-24). */
+b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+
+/* Phones: the ring stays beside the totals and the two money boxes side by side;
+   both shrink instead of stacking (stacking left a lone ring and wasted space). */
+@media (max-width: 389px) {
+  .dash-hero { padding: 16px 14px 14px; }
+  .dash-hero-top { gap: 12px; flex-wrap: nowrap; }
+  .dash-ring { width: 76px; height: 76px; }
+  .dash-ring-text b { font-size: 17px; }
+  .dash-ring-text span { font-size: 10.5px; }
+  .dash-hero-figures { min-width: 0; }
+  .dash-hero-total { font-size: 21px; }
+  .dash-hero-row { font-size: 12.5px; gap: 5px; }
+  .dash-hero-row b { padding-left: 4px; }
+  .dash-hero-stats div + div { padding-left: 10px; }
+  .dash-hero-stats dd { font-size: 15px; }
+  .dash-collect-box { padding: 12px; }
+  .dash-collect-box b { font-size: 16px; overflow-wrap: anywhere; }
+  .dash-collect-box small { font-size: 11.5px; }
+}

@@ -15,7 +15,7 @@
 | Google Sheets backup via secret-locked `backup_export` | Daily readable copy without putting the service_role key anywhere. |
 | Quantities stored as "2× Name" in the services text | No schema change; old bookings read as ×1. |
 | One PDF engine for invoice and quotation | Same approved design; quote adds the policy page. Text the built-in Latin-1 fonts can't draw (Malayalam, emoji) is drawn by the device as an image on the same baseline, so it shapes correctly without embedding a ~400 KB font. |
-| Playfair Display titles; neutral sans for Earnings figures | Brand feel for headings, readability for money (Bodoni was too thin). |
+| Playfair Display titles; money in Jost everywhere; semi-bold (600) is the heaviest weight | Brand feel for headings; the owner chose the card amount style for all figures, then no bold anywhere (2026-11-24). PDFs keep their own fonts. |
 | No fades on page change; transform-only swipe | Fades caused visible blinking and colour shifts. |
 | Laptop zoom (up to 125%) instead of re-layout | Owner liked the 125% browser-zoom look; one scale step keeps all layouts intact. |
 | Received money is never clipped to the total | Raising a total leaves a balance due; lowering it shows a refund. Only an explicit Paid / Record payment adds money. |
