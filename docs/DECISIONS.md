@@ -56,3 +56,5 @@
 - A discount is capped at the services total while typing, and a save is refused if removing a service leaves a larger discount.
 - Saving a booking as Done with a balance still due asks first ("Balance still due"), so a fully paid job isn't left as due by mistake.
 - Only one owner: a unique index `members_one_owner` (schema.sql and hardening.sql) refuses a second owner row.
+- Bridesmaids' makeup counter removed from the booking form (2026-11-25): it added no money and could disagree with a priced line. Bridesmaids go under "Something else" (with a rate, or none for "Included"). Production starts empty, so no old counts exist there; an old saved count is kept untouched by edits and still shows on the sheet and PDF. The one test booking with a count (demo) was cleared.
+- PDF: a free line shows no "Rs. 0" rate, only the quantity and "Included".

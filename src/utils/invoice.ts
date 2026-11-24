@@ -353,7 +353,8 @@ async function buildDocument(d: DocData): Promise<void> {
     if (detailed) {
       // Adjustment lines (discount, additional services) have no rate or quantity.
       doc.setTextColor(...SOFT);
-      if (row.rate != null) doc.text(money(row.rate), cRate, y, { align: "right" });
+      // A free line ("Included") shows no "Rs. 0" rate.
+      if (row.rate) doc.text(money(row.rate), cRate, y, { align: "right" });
       if (row.qty != null) doc.text(String(row.qty), cQty, y, { align: "center" });
       doc.setTextColor(...INK);
     }

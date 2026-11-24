@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
-import { LockKeyhole, Minus, Plus } from "lucide-react";
+import { LockKeyhole, Plus } from "lucide-react";
 import type { BookingPhoto, PaymentStatus, PhotoChanges, WorkLog, WorkLogInput, WorkStatus } from "../types";
 import { formatCurrency, isValidPhone, joinWorks, normalizePhone, parseWorks, receivedOf, splitQty, todayISO, withQty } from "../utils/format";
 import { changedFields } from "../utils/editMerge";
@@ -64,7 +64,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [customWork, setCustomWork] = useState("");
   const [eventType, setEventType] = useState(initial?.eventType ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
-  const [bridesmaids, setBridesmaids] = useState(initial?.bridesmaids ?? 0);
+  // No longer edited here (bridesmaids go under "Something else"); an old saved count is kept as is.
+  const bridesmaids = initial?.bridesmaids ?? 0;
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
   // Amount = services total (automatic, from the tiles) + extra (typed by hand,
@@ -388,16 +389,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
               </p>
             )}
 
-            <label className="field-label">Bridesmaids' makeup</label>
-            <div className="stepper">
-              <button type="button" className="round-btn" onClick={() => setBridesmaids((n) => Math.max(0, n - 1))} aria-label="Fewer bridesmaids">
-                <Minus size={16} />
-              </button>
-              <span className="stepper-value">{bridesmaids === 0 ? "None" : bridesmaids}</span>
-              <button type="button" className="round-btn" onClick={() => setBridesmaids((n) => n + 1)} aria-label="More bridesmaids">
-                <Plus size={16} />
-              </button>
-            </div>
+            {/* Bridesmaids are added under "Something else": with a rate, or none for "Included". */}
           </fieldset>
 
           <fieldset className="form-section">
