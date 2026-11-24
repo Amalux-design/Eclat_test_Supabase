@@ -105,7 +105,7 @@ export function LogCard({ log, onEdit, dateLabel, tone = "paper" }: LogCardProps
             <StatusPill kind={log.status} />
             {isAdmin &&
               (isPartPaid(log) ? (
-                <span className="pill pill-partial">Part paid</span>
+                <span className="pill pill-partial">{formatCurrency(log.paidAmount)} paid</span>
               ) : (
                 <StatusPill kind={log.paymentStatus} />
               ))}

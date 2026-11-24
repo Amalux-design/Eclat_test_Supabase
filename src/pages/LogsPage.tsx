@@ -219,6 +219,7 @@ export function LogsPage() {
             <Search size={17} strokeWidth={2} className="lens" />
             <X size={17} strokeWidth={2.2} className="cross" />
           </button>
+          <span className="search-pill-label" aria-hidden="true">Search</span>
           <input
             ref={searchRef}
             className="search-pill-input"

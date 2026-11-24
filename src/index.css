@@ -5498,3 +5498,18 @@ button, a, [role="button"], input, select, textarea { -webkit-tap-highlight-colo
   .dash-at-week { align-self: stretch; grid-template-rows: auto minmax(168px, 1fr); }
   .dash-at-week > .dash-week { height: auto; min-height: 168px; }
 }
+
+/* Search: a pill with its name while closed, so it isn't missed beside the date pills. */
+.search-pill:not(.open) { width: 104px; }
+.search-pill-label {
+  position: absolute;
+  left: 36px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.search-pill.open .search-pill-label { opacity: 0; }
+.search-pill:not(.open) .search-pill-icon { left: 5px; }
