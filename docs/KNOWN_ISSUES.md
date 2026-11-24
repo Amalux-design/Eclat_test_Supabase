@@ -34,6 +34,10 @@ Status as of 2026-11-22. "Verified" = checked in code/state; "Open" = needs a de
 - Laptop zoom math (`--z`) must be respected by any new vh/vw sizing or coordinate math.
 
 ## Resolved recently (for regression checks)
+Retest 2026-11-25 after the counter removal and PDF change (test booking deleted after):
+- "Balance still due" is now asked once; a second Save after a "changed on another device" warning no longer asks again.
+- Passed: free item (no rate) saves without a price and shows "Included"; "Rs 2,500" rate and "5k" received read right; Enter in "Something else" adds the item, doesn't save; reopen shows the same total; two-device edit keeps both; full payment; Payments and dashboard match the database; all 29 bookings consistent.
+
 Pre-handover test 2026-11-24 (owner + team phone, on test bookings, all deleted after):
 - Money boxes read "Rs 5000.00" as 500000 and "5k" as 5; now ₹/Rs/INR, /-, decimals, k and lakh all read correctly.
 - Dashboard "Overdue / Coming up" labels now say what the split is (date passed / today or later).

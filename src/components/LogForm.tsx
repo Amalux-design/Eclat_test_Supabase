@@ -92,6 +92,8 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
   const [statusOverride, setStatusOverride] = useState<WorkStatus | null>(initial?.status ?? forceStatus ?? null);
   const [error, setError] = useState<string | null>(null);
   const [unaddedWarned, setUnaddedWarned] = useState(false);
+  // The balance the person already agreed to leave due when marking as done.
+  const [dueAccepted, setDueAccepted] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<BookingPhoto[]>([]);
@@ -243,14 +245,16 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     }
     if (submitting) return;
     // Marking as done with money still due: ask, in case the rest was received.
+    // Asked once per balance: a second Save after a "changed on another device" warning doesn't ask again.
     const balance = Number(amount) - receivedNow;
-    if (effectiveStatus === "WORKED" && initial?.status !== "WORKED" && balance > 0) {
+    if (effectiveStatus === "WORKED" && initial?.status !== "WORKED" && balance > 0 && dueAccepted !== balance) {
       const ok = await confirm({
         title: "Balance still due",
         message: `${formatCurrency(balance)} of ${formatCurrency(Number(amount))} hasn't been received. Mark as done anyway? If the full amount was paid, tap Paid first.`,
         confirmLabel: "Mark as done",
       });
       if (!ok) return;
+      setDueAccepted(balance);
     }
     setSubmitting(true);
     const input = buildInput();
