@@ -11,11 +11,11 @@ Status as of 2026-11-22. "Verified" = checked in code/state; "Open" = needs a de
 
 ## Before handover (Open)
 - **Not production-ready yet.** The 2026-11-22 audit's remaining fixes are being done in small steps; the list is kept privately until they land.
-- The "Forgot password" dashboard steps in `supabase/README.md` don't work (there is no set-password there); a tested procedure is to be written.
+- Forgot password: procedure written in `docs/PASSWORD_RESET.md` (delete login → Add user with a temporary password → person changes it). Not yet rehearsed on a real project; run its one-time check first.
 - The fixed setup SQL has run on throwaway Postgres only (Supabase parts imitated). Run it on the real empty project: unedited first (must stop), then with the owner's email.
 - A believable owner-email typo still passes the check: read it letter by letter and create that password straight away.
 - Sheets backup works on real Google + Supabase (19 rows, 2026-11-22). Still untested there: over 1,000 rows, the first nightly run, and a restore.
-- Full audit, real-phone walk-through and a handover guide are still to do.
+- Handover guide written: `docs/HANDOVER_SETUP.md` (includes the missing daily-backup step, `installDaily`). Not yet followed end to end. Real-phone walk-through done on the test copy (owner + team phone, 2026-11-24).
 - Vercel plan to decide (Hobby is non-commercial, and its private repos only deploy the account owner's commits).
 
 ## Risks (Open)

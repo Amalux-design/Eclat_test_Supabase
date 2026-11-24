@@ -42,10 +42,10 @@ Anyone else gets "This email isn't on the Éclat team yet".
 
 ### Forgot password
 
-Supabase → **Authentication → Users** → find the person → **⋯** → **Send
-password recovery** won't work without email setup, so instead:
-**⋯ → Edit user** (or "Update user") → set a new password → Save. Tell them
-the new password; they can change it in the app (Account → Change password).
+Supabase has no "set a new password" option for a user, and "Send password
+recovery" needs email (not set up). The tested procedure — delete the login,
+add it again with a temporary password, the person changes it in the app — is
+in `docs/PASSWORD_RESET.md`.
 
 ## 2b. Harden logins (required)
 
@@ -61,8 +61,14 @@ email changes through the API. Then also run `supabase/archive-members.sql`
    characters, then **Run**. Re-running later keeps the saved secret (to change
    it, see `docs/SECURITY.md`).
 2. Paste `scripts/backup-apps-script.gs` into the backup Sheet's Apps Script.
-   There (never in the repo file), fill in this project's URL, anon key and
-   that secret, then run `backupNow` once.
+   There (never in the repo file), fill in this project's URL (replace the one
+   already there), anon key and that secret, then run `backupNow` once.
+3. Run `installDaily` once. Without it the backup never runs again. Check
+   Apps Script → **Triggers**: one daily `backupNow`; set its failure
+   notifications to **Notify me immediately**.
+
+For a production copy in the owner's own accounts, follow
+`docs/HANDOVER_SETUP.md` end to end instead of this file.
 
 ## 3. Move the existing bookings (optional)
 
