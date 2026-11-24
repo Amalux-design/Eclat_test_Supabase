@@ -64,6 +64,8 @@ Audit fix 2026-11-24, step 16: Earnings "% collected" and refunds correct; "All 
 
 Audit fix 2026-11-24, step 17: cached client data is cleared on removal, demotion and sign-out, and never shown to another login.
 
+Audit fix 2026-11-24, step 18: the photo clean-up uses the server's date and the booking's current date (needs `expired_photos()` from schema.sql; until then it is skipped).
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.

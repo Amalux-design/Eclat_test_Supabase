@@ -241,20 +241,15 @@ export const api = {
   },
 
   /**
-   * Remove photos whose work date is more than 2 months ago, files and rows.
+   * Remove photos of bookings more than 2 months past (by the server's date), files and rows.
    * Run from admin devices (at most once a day); the team can't delete.
    */
   async cleanupExpiredPhotos(): Promise<number> {
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - 2);
-    const iso = cutoff.toISOString().slice(0, 10);
-    const { data, error } = await supabase
-      .from("booking_photos")
-      .select("id, path, thumb_path")
-      .lt("work_date", iso)
-      .limit(200);
+    // The server picks them by its own date: a phone with a wrong clock can't delete current photos.
+    const { data, error } = await supabase.rpc("expired_photos");
     if (error) throw toApiError(error, "Couldn't check old photos.");
-    const photos = (data ?? []).map((p) => ({ id: p.id, path: p.path, thumbPath: p.thumb_path }));
+    const rows = (data ?? []) as { id: string; path: string; thumb_path: string }[];
+    const photos = rows.map((p) => ({ id: p.id, path: p.path, thumbPath: p.thumb_path }));
     await api.removePhotos(photos);
     return photos.length;
   },

@@ -50,3 +50,4 @@
 | "% collected" counts money only towards each booking's own total, rounded down | One client's overpayment is a refund, not payment of another's balance; 99.6% is not 100%. |
 | "All years" charts the 12 months up to the latest booking, each with its year | Months of different years were added together. |
 | The saved booking list belongs to one person; access changes clear it at once | Removed or demoted people, and the next person on a shared device, must not keep or see client data. |
+| Expired photos are chosen by the server (`expired_photos()`): its India date, the booking's current date, 3-day grace | A phone's wrong clock or a stale photo date must not delete current photos, which have no backup. |

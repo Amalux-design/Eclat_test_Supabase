@@ -40,7 +40,7 @@ Last updated 2026-11-22 (data, save and backup paths re-checked; the rest verifi
 - **Load:** pages of 1,000 by id, then sorted by date; older replies are ignored.
 - **Delete:** row first; files only once the row is confirmed gone (best effort).
 - **Live updates:** realtime on bookings, booking_photos, booking_private (admins), members (instant revoke/role change); refetch on app foreground; 1-minute heartbeat.
-- **Photos:** compressed on device (1600 px ≈300 KB + 360 px thumb); admin devices delete photos 2 months after work date, once a day (`eclat:photo-sweep` key).
+- **Photos:** compressed on device (1600 px ≈300 KB + 360 px thumb); admin devices delete photos 2 months after the booking date as chosen by `expired_photos()` (server date), once a day (`eclat:photo-sweep` key).
 - **Documents:** jsPDF loaded on demand; iPhone uses the share sheet, others download.
 - **Backup:** Apps Script calls `backup_export` daily in pages of 1,000 → "Latest" + 14 dated tabs.
 - **Keep-alive:** Vercel cron hits `/api/keep-alive` daily (03:00 UTC).

@@ -180,6 +180,29 @@ create trigger members_protect_owner before update or delete on public.members
   for each row execute function public.protect_owner();
 
 -- ---------------------------------------------------------------------------
+-- Reference photos expire 2 months after the booking's date. The server's date
+-- (India time) decides, never a phone's clock, and the booking's current date is
+-- used. A photo added in the last 3 days is never included.
+-- ---------------------------------------------------------------------------
+create or replace function public.expired_photos()
+returns table (id uuid, path text, thumb_path text)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select p.id, p.path, p.thumb_path
+  from booking_photos p
+  join bookings b on b.id = p.booking_id
+  where b.date < ((now() at time zone 'Asia/Kolkata')::date - interval '2 months')::date
+    and p.created_at < now() - interval '3 days'
+  order by b.date
+  limit 200
+$$;
+
+grant execute on function public.expired_photos() to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Row Level Security: the database enforces who sees what.
 -- ---------------------------------------------------------------------------
 alter table public.members         enable row level security;
