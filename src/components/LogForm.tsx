@@ -28,13 +28,26 @@ interface LogFormProps {
 
 const KNOWN_SERVICES = new Set(SERVICE_GROUPS.flatMap((g) => g.services.map((s) => s.name)));
 
-/** Whole rupees from what was typed or pasted: "₹15,000.00" → 15000, "1.5L" → 150000. */
+/**
+ * Whole rupees from what was typed or pasted: "₹15,000.00" / "Rs 15000.00" / "15000/-" → 15000,
+ * "5k" → 5000, "1.5L" → 150000. Never glues digits across a decimal point ("Rs 5000.00" was 500000).
+ */
 function rupees(text: string): number {
-  const t = text.replace(/[\s,₹]/g, "").toLowerCase();
-  const lakh = /^(\d+(?:\.\d+)?)(l|lac|lakh|lakhs)$/.exec(t);
-  if (lakh) return Math.round(Number(lakh[1]) * 100000);
-  const n = /^-?(\d+)(?:\.\d*)?$/.exec(t);
-  return n ? Number(n[1]) : Number(t.replace(/\D/g, "")) || 0;
+  const t = text
+    .toLowerCase()
+    .replace(/[\s,₹]/g, "")
+    .replace(/^-/, "")
+    .replace(/^(rs\.?|inr)/, "")
+    .replace(/\/-?$/, "");
+  const m = /^(\d+(?:\.\d*)?)(k|thousand|l|lac|lacs|lakh|lakhs)?$/.exec(t);
+  if (m) {
+    const n = Number(m[1]);
+    if (!m[2]) return Math.trunc(n);
+    return Math.round(n * (m[2] === "k" || m[2] === "thousand" ? 1000 : 100000));
+  }
+  // Words around one plain number ("5000 advance"); anything less clear counts as nothing.
+  const one = /^\D*(\d+)\D*$/.exec(t);
+  return one ? Number(one[1]) : 0;
 }
 
 export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, onClose }: LogFormProps) {

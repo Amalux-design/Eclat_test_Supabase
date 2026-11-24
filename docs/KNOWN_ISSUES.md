@@ -34,6 +34,11 @@ Status as of 2026-11-22. "Verified" = checked in code/state; "Open" = needs a de
 - Laptop zoom math (`--z`) must be respected by any new vh/vw sizing or coordinate math.
 
 ## Resolved recently (for regression checks)
+Pre-handover test 2026-11-24 (owner + team phone, on test bookings, all deleted after):
+- Money boxes read "Rs 5000.00" as 500000 and "5k" as 5; now ₹/Rs/INR, /-, decimals, k and lakh all read correctly.
+- Dashboard "Overdue / Coming up" labels now say what the split is (date passed / today or later).
+- Passed: part and full payments, overpay blocked, stale payment dialog, two-device edits (merge and clash), lowered total → refund, discount guard, Done prompt, delete elsewhere, live updates, Payments/dashboard/invoice totals vs database, team sees no money or contacts.
+
 Audit fixes 2026-11-22, steps 1-7 (each tested by the developer):
 - Team-management guard and owner protection tightened.
 - New-style Supabase keys and explicit table grants for new projects.

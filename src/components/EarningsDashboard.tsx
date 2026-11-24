@@ -151,12 +151,12 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
                 <div className="dash-collect-box overdue">
                   <span>Overdue</span>
                   <b>{formatCurrency(d.overdue)}</b>
-                  <small>Work done, not fully paid</small>
+                  <small>Date passed, not fully paid</small>
                 </div>
                 <div className="dash-collect-box">
                   <span>Coming up</span>
                   <b>{formatCurrency(d.upcoming)}</b>
-                  <small>Future bookings still owing</small>
+                  <small>Today or later, still owing</small>
                 </div>
               </div>
               {d.overdueList.length > 0 && (
