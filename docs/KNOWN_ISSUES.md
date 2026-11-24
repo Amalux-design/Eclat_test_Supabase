@@ -60,6 +60,8 @@ Audit fix 2026-11-24, step 14: pasted and decimal amounts read correctly; the Pa
 
 Audit fix 2026-11-24, step 15: undo after a lost reply works; an out-of-date role can no longer blank a booking.
 
+Audit fix 2026-11-24, step 16: Earnings "% collected" and refunds correct; "All years" no longer merges months.
+
 Fixed 2026-11-22 (1 tested on throwaway Postgres; 2-9 retested by the developer in the app):
 1. Setup file had a built-in owner → no default; stops until the email is filled in.
 2. Raising a paid total counted as received → shows the balance due.

@@ -47,3 +47,5 @@
 | Money boxes read whole rupees ("₹15,000.00" = 15000, "1.5L" = 150000) | Pasted figures were multiplied by 100. |
 | An edit records what it sends before sending | After a lost reply the server's copy is recognised as this form's own write, so it can be undone without a false warning, and never undoes someone else. |
 | Edits and payments always re-read contacts and money; they stop if those are missing for a non-admin | An out-of-date role must not save blanks over a booking. |
+| "% collected" counts money only towards each booking's own total, rounded down | One client's overpayment is a refund, not payment of another's balance; 99.6% is not 100%. |
+| "All years" charts the 12 months up to the latest booking, each with its year | Months of different years were added together. |

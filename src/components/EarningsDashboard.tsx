@@ -27,7 +27,20 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
     const today = todayISO();
     const total = logs.reduce((s, l) => s + l.amount, 0);
     const received = logs.reduce((s, l) => s + receivedOf(l), 0);
-    const months = MONTHS.map((m) => ({ m, booked: 0, received: 0, count: 0 }));
+    // Collected = money received towards each booking's own total. An overpayment on one
+    // booking is a refund, not payment of another booking's balance.
+    const collected = logs.reduce((s, l) => s + (l.amount > 0 ? Math.min(receivedOf(l), l.amount) : 0), 0);
+    const toRefund = logs.reduce((s, l) => s + (l.amount > 0 ? Math.max(0, receivedOf(l) - l.amount) : 0), 0);
+    // Twelve real months: the chosen year, or (all years) the 12 months up to the latest booking.
+    const last = year
+      ? `${year}-12`
+      : logs.reduce((m, l) => (l.date.slice(0, 7) > m ? l.date.slice(0, 7) : m), todayISO().slice(0, 7));
+    const months = MONTHS.map((_, i) => {
+      const d = new Date(Number(last.slice(0, 4)), Number(last.slice(5, 7)) - 12 + i, 1);
+      const m = MONTHS[d.getMonth()];
+      return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, m, title: year ? m : `${m} ${d.getFullYear()}`, booked: 0, received: 0, count: 0 };
+    });
+    const monthAt = new Map(months.map((x) => [x.key, x]));
     const weekdays = WEEKDAYS.map((w) => ({ w, count: 0 }));
     const services = new Map<string, number>();
     const clients = new Map<string, number>();
@@ -39,11 +52,11 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
     for (const l of logs) {
       const r = receivedOf(l);
       const due = Math.max(0, l.amount - r);
-      const mi = Number(l.date.slice(5, 7)) - 1;
-      if (months[mi]) {
-        months[mi].booked += l.amount;
-        months[mi].received += r;
-        months[mi].count++;
+      const month = monthAt.get(l.date.slice(0, 7));
+      if (month) {
+        month.booked += l.amount;
+        month.received += r;
+        month.count++;
       }
       const wd = (new Date(l.date + "T00:00").getDay() + 6) % 7; // Monday first
       weekdays[wd].count++;
@@ -77,7 +90,9 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
       outstanding: overdue + upcoming,
       count: logs.length,
       avg: logs.length ? Math.round(total / logs.length) : 0,
-      rate: total ? Math.min(100, Math.round((received / total) * 100)) : 0,
+      // Rounded down: 99.6% collected is not "100%" while money is still due.
+      rate: total ? Math.min(100, Math.floor((collected / total) * 100)) : 0,
+      toRefund,
       months,
       best: best.booked > 0 ? best : null,
       weekdays,
@@ -89,7 +104,7 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
       upcoming,
       overdueList: overdueList.sort((a, b) => (a.date < b.date ? -1 : 1)).slice(0, 3),
     };
-  }, [logs]);
+  }, [logs, year]);
 
   return (
     <Sheet label="Earnings dashboard" onClose={onClose}>
@@ -109,7 +124,7 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
               <div className="dash-hero-top">
                 <Ring pct={d.rate} />
                 <div className="dash-hero-figures">
-                  <span className="dash-hero-label">Booked in {year}</span>
+                  <span className="dash-hero-label">{year ? `Booked in ${year}` : "Booked, all years"}</span>
                   <span className="dash-hero-total">{formatCurrency(d.total)}</span>
                   <span className="dash-hero-row">
                     <i style={{ background: RECEIVED }} /> Received <b>{formatCurrency(d.received)}</b>
@@ -117,12 +132,17 @@ export function EarningsDashboard({ logs, year, onClose }: Props) {
                   <span className="dash-hero-row due">
                     <i /> Outstanding <b>{formatCurrency(d.outstanding)}</b>
                   </span>
+                  {d.toRefund > 0 && (
+                    <span className="dash-hero-row due">
+                      <i /> To refund <b>{formatCurrency(d.toRefund)}</b>
+                    </span>
+                  )}
                 </div>
               </div>
               <dl className="dash-hero-stats">
                 <div><dt>Bookings</dt><dd>{d.count}</dd></div>
                 <div><dt>Average</dt><dd>{short(d.avg)}</dd></div>
-                <div><dt>Best month</dt><dd>{d.best ? d.best.m : "—"}</dd></div>
+                <div><dt>Best month</dt><dd>{d.best ? d.best.title : "—"}</dd></div>
               </dl>
             </section>
 
@@ -276,7 +296,7 @@ function useWidth<T extends HTMLElement>() {
 }
 
 /** Grouped bars, one axis, recessive grid; tap/hover a month for values. */
-function MonthChart({ months }: { months: { m: string; booked: number; received: number; count: number }[] }) {
+function MonthChart({ months }: { months: { key: string; m: string; title: string; booked: number; received: number; count: number }[] }) {
   const [active, setActive] = useState<number | null>(null);
   const [box, W] = useWidth<HTMLDivElement>();
   const grow = useGrow();
@@ -304,7 +324,7 @@ function MonthChart({ months }: { months: { m: string; booked: number; received:
           const hb = (x.booked / max) * plotH * grow;
           const hr = (x.received / max) * plotH * grow;
           return (
-            <g key={x.m} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)} onClick={() => setActive(active === i ? null : i)}>
+            <g key={x.key} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)} onClick={() => setActive(active === i ? null : i)}>
               <rect x={padL + slot * i} y={padT} width={slot} height={plotH} fill="transparent" />
               {active === i && <rect x={padL + slot * i + 2} y={padT} width={slot - 4} height={plotH} className="dash-hover" rx="6" />}
               {hb > 0 && <rect x={cx - bw - 1} y={base - hb} width={bw} height={hb} rx={Math.min(4, bw / 2)} fill={BOOKED} />}
@@ -316,7 +336,7 @@ function MonthChart({ months }: { months: { m: string; booked: number; received:
       </svg>
       <p className="dash-tip" aria-live="polite">
         {a ? (
-          <><b>{a.m}</b> · {a.count} booking{a.count === 1 ? "" : "s"} · booked {formatCurrency(a.booked)} · received {formatCurrency(a.received)}</>
+          <><b>{a.title}</b> · {a.count} booking{a.count === 1 ? "" : "s"} · booked {formatCurrency(a.booked)} · received {formatCurrency(a.received)}</>
         ) : (
           <span className="dash-hint">Tap a month for details</span>
         )}
@@ -327,7 +347,7 @@ function MonthChart({ months }: { months: { m: string; booked: number; received:
           <thead><tr><th>Month</th><th>Booked</th><th>Received</th></tr></thead>
           <tbody>
             {months.filter((x) => x.booked || x.received).map((x) => (
-              <tr key={x.m}><td>{x.m}</td><td>{formatCurrency(x.booked)}</td><td>{formatCurrency(x.received)}</td></tr>
+              <tr key={x.key}><td>{x.title}</td><td>{formatCurrency(x.booked)}</td><td>{formatCurrency(x.received)}</td></tr>
             ))}
           </tbody>
         </table>

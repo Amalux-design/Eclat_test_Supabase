@@ -27,17 +27,22 @@ export function PaymentsPage() {
   const [dashOpen, setDashOpen] = useState(false);
 
   const totals = useMemo(() => {
-    let total = 0, paid = 0, pending = 0, pendingCount = 0;
+    let total = 0, paid = 0, pending = 0, pendingCount = 0, collected = 0, refund = 0;
     for (const log of logs) {
       total += log.amount;
       const received = receivedOf(log);
       paid += received;
+      // Towards each booking's own total only; any extra is owed back, not collected.
+      if (log.amount > 0) {
+        collected += Math.min(received, log.amount);
+        refund += Math.max(0, received - log.amount);
+      }
       if (received < log.amount) {
         pending += log.amount - received;
         pendingCount++;
       }
     }
-    return { total, paid, pending, pendingCount };
+    return { total, paid, pending, pendingCount, collected, refund };
   }, [logs]);
 
   const monthGroups = useMemo(() => {
@@ -79,7 +84,7 @@ export function PaymentsPage() {
     });
   }
 
-  const paidShare = totals.total ? Math.min(100, Math.round((totals.paid / totals.total) * 100)) : 0;
+  const paidShare = totals.total ? Math.min(100, Math.floor((totals.collected / totals.total) * 100)) : 0;
 
   return (
     <div className="page earnings-page">
@@ -112,6 +117,7 @@ export function PaymentsPage() {
               <div>
                 <span className="ledger-label">Received</span>
                 <span className="ledger-value">{formatCurrency(totals.paid)}</span>
+                {totals.refund > 0 && <span className="ledger-sub">{formatCurrency(totals.refund)} to refund</span>}
               </div>
               <div>
                 <span className="ledger-label">Outstanding</span>
