@@ -34,6 +34,10 @@ Status as of 2026-11-22. "Verified" = checked in code/state; "Open" = needs a de
 - Laptop zoom math (`--z`) must be respected by any new vh/vw sizing or coordinate math.
 
 ## Resolved recently (for regression checks)
+Review 2026-11-25 (all changes since the audit, 76bb562..e530260):
+- Typing a decimal key by key into Extra/Discount or a service Rate glued the digits ("2500.50" → 250050). Both boxes now keep the text as typed and read the number from it (2500), tidying it when the box is left. Received already worked this way. Tested by key simulation and in the app (no booking saved).
+- Open, low: repeated overriding rules in the appended booking-card CSS block; "Mark as Done" vs "Mark as done" capitalisation; money read three different ways (rupees(), the Record payment number box).
+
 Retest 2026-11-25 after the counter removal and PDF change (test booking deleted after):
 - "Balance still due" is now asked once; a second Save after a "changed on another device" warning no longer asks again.
 - Passed: free item (no rate) saves without a price and shows "Included"; "Rs 2,500" rate and "5k" received read right; Enter in "Something else" adds the item, doesn't save; reopen shows the same total; two-device edit keeps both; full payment; Payments and dashboard match the database; all 29 bookings consistent.

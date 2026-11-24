@@ -137,7 +137,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
     () => works.reduce((sum, w) => sum + (w.price ?? 0) * w.qty, 0),
     [works]
   );
-  const extraNum = Number(extra.replace(/[^\d.-]/g, "")) || 0;
+  // `extra` keeps the box's text as typed ("2500.50", "5k"), with a leading "-" for a discount;
+  // the number is read from it here. Tidying it on every key glued digits across a "." (2500.50 → 250050).
+  const extraNum = (extra.startsWith("-") ? -1 : 1) * rupees(extra.replace(/^-/, ""));
   // With no priced service the box is the whole amount, so it can't be a discount.
   const amount = String(Math.max(0, menuTotal + (menuTotal === 0 ? Math.abs(extraNum) : extraNum)));
   const [keptTotal, setKeptTotal] = useState<number | null>(null);
@@ -373,7 +375,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                 className="field-input"
                 inputMode="numeric"
                 value={customRate}
-                onChange={(e) => setCustomRate(e.target.value.trim() ? String(rupees(e.target.value) || "") : "")}
+                // Kept as typed (read with rupees() when added), so "3500.50" can't become 350050.
+                onChange={(e) => setCustomRate(e.target.value)}
+                onBlur={() => setCustomRate((v) => (v.trim() ? String(rupees(v) || "") : ""))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -413,7 +417,7 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                     className={`bill-sign ${extra.startsWith("-") ? "minus" : ""}`}
                     onClick={() =>
                       setExtra((v) =>
-                        v.startsWith("-") ? v.slice(1) : v ? "-" + String(Math.min(Number(v) || 0, menuTotal)) : "-"
+                        v.startsWith("-") ? v.slice(1) : v ? "-" + String(Math.min(rupees(v), menuTotal)) : "-"
                       )
                     }
                     aria-label={extra.startsWith("-") ? "Switch to extra (add)" : "Switch to discount (subtract)"}
@@ -427,17 +431,24 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                     id="f-extra"
                     type="text"
                     inputMode="numeric"
-                    value={extra.replace("-", "")}
+                    value={extra.replace(/^-/, "")}
                     onChange={(e) => {
                       const typed = e.target.value;
-                      const value = typed.trim() ? String(rupees(typed)) : "";
                       // A pasted "-2000" is a discount, when there is a service to take it off.
                       const minus = menuTotal > 0 && (typed.trim().startsWith("-") || extra.startsWith("-"));
+                      const text = typed.replace(/^\s*-\s*/, "");
                       // A discount can't take off more than the services cost.
-                      const capped = minus && value && Number(value) > menuTotal ? String(menuTotal) : value;
-                      setExtra(capped === "0" ? "" : (minus && capped ? "-" : "") + capped);
+                      const kept = minus && rupees(text) > menuTotal ? String(menuTotal) : text;
+                      setExtra(kept.trim() ? (minus ? "-" : "") + kept : "");
                       setKeptTotal(null);
                     }}
+                    // Leaving the box shows the amount actually used ("2500.50" → 2500, "5k" → 5000).
+                    onBlur={() =>
+                      setExtra((v) => {
+                        const n = rupees(v.replace(/^-/, ""));
+                        return n ? (v.startsWith("-") ? "-" : "") + n : "";
+                      })
+                    }
                     placeholder="0"
                     aria-describedby="f-extra-hint"
                   />
