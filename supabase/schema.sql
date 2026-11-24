@@ -23,6 +23,10 @@ create table if not exists public.members (
   created_at  timestamptz not null default now()
 );
 
+-- Only one owner, ever (see also hardening.sql).
+create unique index if not exists members_one_owner
+  on public.members ((true)) where role = 'owner';
+
 -- Role of the signed-in user, or null if they aren't an active member.
 -- SECURITY DEFINER so policies can read members without recursion.
 create or replace function public.app_role()

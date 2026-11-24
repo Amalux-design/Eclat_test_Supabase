@@ -56,3 +56,9 @@ create trigger guard_auth_users_email
 
 -- Nobody calls this function directly.
 revoke all on function public.guard_auth_users() from public, anon, authenticated;
+
+-- 3. Only one owner. The database refuses a second row with role 'owner',
+--    however it is added (app, API or a mistake in the SQL Editor). Fails
+--    with "duplicate key" if two owners already exist: fix that row first.
+create unique index if not exists members_one_owner
+  on public.members ((true)) where role = 'owner';

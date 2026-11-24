@@ -15,7 +15,10 @@ export function useSwipeTabs(main: React.RefObject<HTMLElement | null>, paths: s
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const state = useRef({ pathname, paths });
-  state.current = { pathname, paths };
+  // Kept current after each render (not during it), before the effects below read it.
+  useLayoutEffect(() => {
+    state.current = { pathname, paths };
+  });
 
   // Which entrance the next page plays. Set once per navigation, before the
   // new page paints, and never removed mid-animation: changing it later would

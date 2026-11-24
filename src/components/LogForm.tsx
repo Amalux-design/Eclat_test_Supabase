@@ -221,7 +221,23 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
       box?.scrollIntoView({ block: "center" });
       return;
     }
+    // Removing a service can leave a discount larger than what is left to discount.
+    if (menuTotal > 0 && extraNum < 0 && -extraNum > menuTotal) {
+      setError(`The discount can't be more than the services total (${formatCurrency(menuTotal)}).`);
+      document.getElementById("f-extra")?.focus();
+      return;
+    }
     if (submitting) return;
+    // Marking as done with money still due: ask, in case the rest was received.
+    const balance = Number(amount) - receivedNow;
+    if (effectiveStatus === "WORKED" && initial?.status !== "WORKED" && balance > 0) {
+      const ok = await confirm({
+        title: "Balance still due",
+        message: `${formatCurrency(balance)} of ${formatCurrency(Number(amount))} hasn't been received. Mark as done anyway? If the full amount was paid, tap Paid first.`,
+        confirmLabel: "Mark as done",
+      });
+      if (!ok) return;
+    }
     setSubmitting(true);
     const input = buildInput();
     const changes = openedInput ? changedFields(openedInput, input) : input;
@@ -386,7 +402,11 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                   <button
                     type="button"
                     className={`bill-sign ${extra.startsWith("-") ? "minus" : ""}`}
-                    onClick={() => setExtra((v) => (v.startsWith("-") ? v.slice(1) : "-" + v))}
+                    onClick={() =>
+                      setExtra((v) =>
+                        v.startsWith("-") ? v.slice(1) : v ? "-" + String(Math.min(Number(v) || 0, menuTotal)) : "-"
+                      )
+                    }
                     aria-label={extra.startsWith("-") ? "Switch to extra (add)" : "Switch to discount (subtract)"}
                   >
                     {extra.startsWith("-") ? "−" : "+"}
@@ -404,7 +424,9 @@ export function LogForm({ initial, defaultDate, forceStatus, title, onSubmit, on
                       const value = typed.trim() ? String(rupees(typed)) : "";
                       // A pasted "-2000" is a discount, when there is a service to take it off.
                       const minus = menuTotal > 0 && (typed.trim().startsWith("-") || extra.startsWith("-"));
-                      setExtra(value === "0" ? "" : (minus && value ? "-" : "") + value);
+                      // A discount can't take off more than the services cost.
+                      const capped = minus && value && Number(value) > menuTotal ? String(menuTotal) : value;
+                      setExtra(capped === "0" ? "" : (minus && capped ? "-" : "") + capped);
                       setKeptTotal(null);
                     }}
                     placeholder="0"

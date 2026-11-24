@@ -117,6 +117,9 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadsRef.current.shown = ++loadsRef.current.started; // replies from before this access change are void
     if (status === "signed-out" || status === "no-access") {
+      // Deliberate: sign-out / loss of access is an outside event, and this
+      // person's bookings must leave memory (and the cache effect) at once.
+      // oxlint-disable-next-line react/set-state-in-effect
       setLogs([]);
       setSettled(true);
       return;

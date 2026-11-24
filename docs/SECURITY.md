@@ -48,3 +48,5 @@ left join public.members m on m.email = lower(u.email) and m.active
 where m.email is null;
 ```
 Delete stray logins from Authentication → Users.
+
+- **Owner action (2026-11-24):** re-run `supabase/hardening.sql` in the SQL Editor to add the one-owner rule (`members_one_owner`).

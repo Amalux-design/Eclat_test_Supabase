@@ -51,3 +51,8 @@
 | "All years" charts the 12 months up to the latest booking, each with its year | Months of different years were added together. |
 | The saved booking list belongs to one person; access changes clear it at once | Removed or demoted people, and the next person on a shared device, must not keep or see client data. |
 | Expired photos are chosen by the server (`expired_photos()`): its India date, the booking's current date, 3-day grace | A phone's wrong clock or a stale photo date must not delete current photos, which have no backup. |
+
+## Money checks and single owner (2026-11-24)
+- A discount is capped at the services total while typing, and a save is refused if removing a service leaves a larger discount.
+- Saving a booking as Done with a balance still due asks first ("Balance still due"), so a fully paid job isn't left as due by mistake.
+- Only one owner: a unique index `members_one_owner` (schema.sql and hardening.sql) refuses a second owner row.
