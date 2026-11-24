@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { api } from "../api/client";
-import { clearAllCaches, readLastAccess, writeLastAccess } from "../utils/localCache";
+import { clearAdminCache, clearAllCaches, readLastAccess, setCacheAccess, writeLastAccess } from "../utils/localCache";
 import type { LastAccess } from "../utils/localCache";
 import type { Role } from "../types";
 
@@ -15,6 +15,8 @@ type Status = "loading" | "signed-out" | "no-access" | "ready";
 
 interface AuthContextValue {
   status: Status;
+  /** The signed-in person (also who the cached bookings on this device belong to). */
+  userId: string | null;
   email: string | null;
   name: string;
   role: Role | null;
@@ -46,6 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(s);
     const email = s?.user.email;
     if (!email) {
+      // No login on this device any more (signed out here, in another tab, or revoked).
+      setCacheAccess(null, false);
+      clearAllCaches();
+      lastRef.current = null;
       setRole(null);
       setStatus("signed-out");
       return;
@@ -55,6 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (check !== checksRef.current) return;
       lastRef.current = m && { userId: s.user.id, role: m.role, name: m.name };
       writeLastAccess(lastRef.current);
+      // Confirmed by the database: removed people keep nothing, demoted people keep no money.
+      setCacheAccess(m ? s.user.id : null, !!m && m.role !== "team");
+      if (!m) clearAllCaches();
+      else if (m.role === "team") clearAdminCache();
       setRole(m?.role ?? null);
       setName(m?.name ?? "");
       setStatus(m ? "ready" : "no-access");
@@ -64,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // and let the next refresh correct it. The database still decides every request.
       const last = lastRef.current ?? readLastAccess();
       const known = last?.userId === s.user.id ? last : null;
+      setCacheAccess(s.user.id, !!known && known.role !== "team");
       setRole(known?.role ?? null);
       setName(known?.name ?? "");
       setStatus((prev) => (prev === "loading" || prev === "signed-out" ? "ready" : prev));
@@ -117,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     // Shared devices: leave no schedule or client data behind.
+    setCacheAccess(null, false);
     clearAllCaches();
     lastRef.current = null;
     checksRef.current++; // a check still running must not save the role again
@@ -142,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       status,
+      userId: session?.user.id ?? null,
       email: session?.user.email ?? null,
       name,
       role,

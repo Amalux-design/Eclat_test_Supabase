@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { PhotoChanges, WorkLog, WorkLogInput } from "../types";
 import { ApiError, api } from "../api/client";
 import { supabase } from "../lib/supabase";
-import { readLogsCache, writeLogsCache } from "../utils/localCache";
+import { readLastAccess, readLogsCache, writeLogsCache } from "../utils/localCache";
 import { monthKey, receivedOf } from "../utils/format";
 import { changeWarning, mergeEdit, sameBooking } from "../utils/editMerge";
 import { useAuth } from "./AuthContext";
@@ -48,27 +48,31 @@ function sortDesc(list: WorkLog[]): WorkLog[] {
 }
 
 export function LogsProvider({ children }: { children: ReactNode }) {
-  const { status, role, isAdmin, recheck } = useAuth();
+  const { status, role, isAdmin, recheck, userId } = useAuth();
   const ready = status === "ready";
 
-  const [logs, setLogs] = useState<WorkLog[]>(() => readLogsCache(isAdmin)?.logs ?? []);
-  const [loading, setLoading] = useState(() => readLogsCache(isAdmin) === null);
+  // First paint, before the login is known: only the copy of the person who used this device last.
+  const [logs, setLogs] = useState<WorkLog[]>(() => readLogsCache(isAdmin, userId ?? readLastAccess()?.userId)?.logs ?? []);
+  const [loading, setLoading] = useState(() => readLogsCache(isAdmin, userId ?? readLastAccess()?.userId) === null);
   const [settled, setSettled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(0);
   const logsRef = useRef(logs);
   const adminRef = useRef(isAdmin);
   const roleRef = useRef(role);
+  const ownerRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     logsRef.current = logs;
     adminRef.current = isAdmin;
     roleRef.current = role;
-  }, [logs, isAdmin, role]);
+    // Only a confirmed, signed-in person's list is ever saved on the device.
+    ownerRef.current = status === "ready" ? userId : null;
+  }, [logs, isAdmin, role, status, userId]);
 
   const commit = useCallback((next: WorkLog[]) => {
     const sorted = sortDesc(next);
     setLogs(sorted);
-    writeLogsCache(adminRef.current, sorted, "");
+    if (ownerRef.current) writeLogsCache(adminRef.current, ownerRef.current, sorted, "");
   }, []);
 
   // Numbered loads: a slow, older reply never replaces a newer list.
@@ -118,11 +122,11 @@ export function LogsProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!ready) return;
-    const cached = readLogsCache(isAdmin);
+    const cached = readLogsCache(isAdmin, userId);
     if (cached) setLogs(cached.logs);
     setLoading(cached === null);
     void refetch();
-  }, [status, ready, isAdmin, refetch]);
+  }, [status, ready, isAdmin, userId, refetch]);
 
   // Live updates: any change to bookings, private details or photos refreshes
   // the list (debounced, so a burst of changes means one reload).

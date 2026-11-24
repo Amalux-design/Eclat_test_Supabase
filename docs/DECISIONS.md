@@ -49,3 +49,4 @@
 | Edits and payments always re-read contacts and money; they stop if those are missing for a non-admin | An out-of-date role must not save blanks over a booking. |
 | "% collected" counts money only towards each booking's own total, rounded down | One client's overpayment is a refund, not payment of another's balance; 99.6% is not 100%. |
 | "All years" charts the 12 months up to the latest booking, each with its year | Months of different years were added together. |
+| The saved booking list belongs to one person; access changes clear it at once | Removed or demoted people, and the next person on a shared device, must not keep or see client data. |
