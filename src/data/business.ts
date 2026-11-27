@@ -17,11 +17,13 @@ export const BUSINESS = {
     "UPI (GPay): 9072103592 (Harsha Chemban)",
     "Federal Bank  |  A/C: 55550117648582  |  IFSC: FDRL0005555",
   ],
+  // Scan-to-pay QR beside "Payment method" (Harsha's GPay QR, decoded). "" hides it.
+  upiQr: "upi://pay?pa=hrshaa96@okicici&pn=harsha%2096&aid=uGICAgMDQlMjsSg",
   invoicePrefix: "ECL",
   quotePrefix: "Q",
   signature: "Harsha, Founder",
   // Pre-filled note on new quotes and invoices (editable each time).
-  defaultNote: "Hair extension charges of ₹600 per person will be applicable if required.",
+  defaultNote: "Hair extension charges, if required, will be charged separately on the event day and are not included in the quoted package amount.",
   // Page 2 of every quotation.
   quotePolicy: [
     "This quotation remains valid for 3 days from the date of issue. To confirm and secure the booking date, a non-refundable advance payment of 50% of the total package amount must be made within this period.",

@@ -221,6 +221,7 @@ export function saveDocument(d: DocData): Promise<void> {
 
 async function buildDocument(d: DocData): Promise<void> {
   const { jsPDF } = await import("jspdf");
+  const QRCode = BUSINESS.upiQr ? (await import("qrcode")).default : null;
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
   const W = 210;
   const M = 20;
@@ -437,18 +438,41 @@ async function buildDocument(d: DocData): Promise<void> {
       : [];
   if (paymentLines.length) {
     let yP = totalsTop;
+    // Scan-to-pay QR on the left, drawn as vector squares so it prints sharp.
+    let textX = M;
+    let qrBottom = yP;
+    if (QRCode && BUSINESS.upiQr) {
+      const size = 25;
+      const qr = QRCode.create(BUSINESS.upiQr, { errorCorrectionLevel: "M" });
+      const n = qr.modules.size;
+      const cell = size / n;
+      const top = yP - 3;
+      doc.setFillColor(255, 255, 255);
+      doc.rect(M, top, size, size, "F");
+      doc.setFillColor(0, 0, 0);
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (qr.modules.get(r, c)) doc.rect(M + c * cell, top + r * cell, cell + 0.02, cell + 0.02, "F");
+        }
+      }
+      doc.setFontSize(7.5);
+      doc.setTextColor(...SOFT);
+      doc.text("Scan to pay (UPI)", M + size / 2, top + size + 3.5, { align: "center" });
+      textX = M + size + 6;
+      qrBottom = top + size + 4;
+    }
     doc.setFontSize(8.5);
     doc.setTextColor(...GILT);
-    doc.text("Payment method", M, yP);
+    doc.text("Payment method", textX, yP);
     yP += 5.5;
     doc.setFontSize(9);
     doc.setTextColor(...SOFT);
     for (const line of paymentLines) {
-      const wrapped = doc.splitTextToSize(pdfText(line), labelX - M - 8);
-      doc.text(wrapped, M, yP);
+      const wrapped = doc.splitTextToSize(pdfText(line), labelX - textX - 8);
+      doc.text(wrapped, textX, yP);
       yP += 4.4 * wrapped.length;
     }
-    y = Math.max(y, yP);
+    y = Math.max(y, yP, qrBottom);
   }
 
   // Notes
