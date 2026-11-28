@@ -59,4 +59,4 @@
 - Bridesmaids' makeup counter removed from the booking form (2026-11-25): it added no money and could disagree with a priced line. Bridesmaids go under "Something else" (with a rate, or none for "Included"). Production starts empty, so no old counts exist there; an old saved count is kept untouched by edits and still shows on the sheet and PDF. The one test booking with a count (demo) was cleared.
 - PDF: a free line shows no "Rs. 0" rate, only the quantity and "Included".
 - PDF: scan-to-pay UPI QR beside "Payment method" on proposals and invoices (2026-11-27). Drawn as vector squares from `BUSINESS.upiQr` (decoded from Harsha's GPay QR, hrshaa96@okicici) so it prints sharp; the `qrcode` library loads only when a PDF is made. Empty `upiQr` hides it.
-- Proposal note: hair extensions or other extras asked for on the event day are not in the package and go on the final invoice (no fixed price, 2026-11-28).
+- Proposals have no Note section; the owner removed the hair-extension note (2026-11-28). The policy page is unchanged.

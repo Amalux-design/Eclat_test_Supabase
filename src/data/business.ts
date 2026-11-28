@@ -22,8 +22,8 @@ export const BUSINESS = {
   invoicePrefix: "ECL",
   quotePrefix: "Q",
   signature: "Harsha, Founder",
-  // Pre-filled note on new quotes and invoices (editable each time).
-  defaultNote: "Hair extensions or any other additional services, if required on the event day, are not included in the quoted package amount and will be added to the final invoice.",
+  // Note printed on proposals; empty = no Note section (owner removed it 2026-11-28).
+  defaultNote: "",
   // Page 2 of every quotation.
   quotePolicy: [
     "This quotation remains valid for 3 days from the date of issue. To confirm and secure the booking date, a non-refundable advance payment of 50% of the total package amount must be made within this period.",
